@@ -194,7 +194,7 @@ hr.dashed{border:none;border-top:2px dashed var(--gray-200);margin:12px 0;}
 
 <!-- ===== SPLASH ===== -->
 <div id="splash">
-  <img src="https://i.ibb.co/placeholder/logo.png" id="splash-logo" alt="Ciudad Paleta" onerror="this.style.display='none'">
+  <div id="splash-logo-wrap"><img id="splash-logo" alt="Ciudad Paleta" style="width:130px;height:130px;border-radius:50%;border:4px solid white;object-fit:cover;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,.3);" onerror="this.parentNode.innerHTML='<div style=&quot;width:130px;height:130px;border-radius:50%;border:4px solid white;background:white;display:flex;align-items:center;justify-content:center;margin-bottom:20px;&quot;><span style=&quot;font-family:Fredoka One,cursive;color:#db2777;font-size:1.8rem;text-align:center;line-height:1;&quot;>CP</span></div>'"></div>
   <h1>Ciudad Paleta</h1>
   <p>Helados Gourmet · Selecciona tu plaza</p>
   <div class="plaza-btns">
@@ -214,7 +214,7 @@ hr.dashed{border:none;border-top:2px dashed var(--gray-200);margin:12px 0;}
 <div id="app" style="display:none;">
 
 <div class="app-header">
-  <img id="header-logo" src="https://i.ibb.co/placeholder/logo.png" alt="Logo" onerror="this.style.display='none'">
+  <img id="header-logo" alt="Logo" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:3px solid white;" onerror="this.style.display='none'">
   <div class="brand">
     <h1>Ciudad Paleta</h1>
     <p id="header-sub">Helados Gourmet</p>
@@ -308,7 +308,10 @@ hr.dashed{border:none;border-top:2px dashed var(--gray-200);margin:12px 0;}
 <div id="tab-catalogo" class="section">
   <div class="card">
     <div class="card-title">🍭 Catálogo de Sabores</div>
-    <button class="btn btn-primary btn-full" onclick="openAddSabor()" style="margin-bottom:14px;">+ Agregar Nuevo Sabor</button>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn btn-primary" style="flex:1;" onclick="openAddSabor()">+ Agregar Nuevo Sabor</button>
+      <label class="btn btn-gray" style="cursor:pointer;" title="Subir logo de Ciudad Paleta">🖼️ Logo <input type="file" accept="image/*" style="display:none;" onchange="logoB64FromFile(this.files[0])"></label>
+    </div>
     <div class="search-box"><span class="si">🔍</span><input type="text" class="form-control" id="searchCat" placeholder="Buscar sabor…" oninput="renderCatalogo()"></div>
     <div id="catalogo-list"></div>
   </div>
@@ -318,6 +321,7 @@ hr.dashed{border:none;border-top:2px dashed var(--gray-200);margin:12px 0;}
 <div id="tab-reporte" class="section">
   <div class="card">
     <div class="card-title">📊 Reporte de Ventas</div>
+    <button class="btn btn-teal btn-full" onclick="generarPDFReporte()" style="margin-bottom:12px;">📄 Exportar Reporte en PDF</button>
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
       <div style="flex:1;"><label style="font-size:.8rem;font-weight:700;color:var(--gray-600);display:block;margin-bottom:4px;">Fecha inicio</label><input type="date" class="form-control" id="rep-ini" onchange="renderReporte()"></div>
       <div style="flex:1;"><label style="font-size:.8rem;font-weight:700;color:var(--gray-600);display:block;margin-bottom:4px;">Fecha fin</label><input type="date" class="form-control" id="rep-fin" onchange="renderReporte()"></div>
@@ -520,6 +524,28 @@ let fbReady = false;
 let fbSuscrito = false;
 
 // ===================== FIREBASE =====================
+// ---- Logo loader ----
+function cargarLogo(){
+  const saved = localStorage.getItem('cp_logo_b64');
+  if(saved){
+    const si = document.getElementById('splash-logo');
+    const hi = document.getElementById('header-logo');
+    if(si) si.src = saved;
+    if(hi) hi.src = saved;
+  }
+}
+function logoB64FromFile(file){
+  const r = new FileReader();
+  r.onload = e => {
+    const b64 = e.target.result;
+    localStorage.setItem('cp_logo_b64', b64);
+    if(fbReady && db) db.ref('config/logo').set(b64);
+    cargarLogo();
+    showToast('✅ Logo actualizado');
+  };
+  r.readAsDataURL(file);
+}
+
 function initFirebase(){
   const cfg = FIREBASE_CONFIG;
   const yaConfigurado = !Object.values(cfg).some(v => v.startsWith('PEGA_AQUI'));
@@ -558,6 +584,13 @@ function setSyncDot(state){
 }
 
 function suscribirFirebase(){
+  // Logo desde Firebase
+  db.ref('config/logo').once('value', snap => {
+    if(snap.val()){
+      localStorage.setItem('cp_logo_b64', snap.val());
+      cargarLogo();
+    }
+  });
   db.ref('sabores').on('value', snap => {
     const d = snap.val();
     if(d){ sabores = Object.values(d); }
@@ -798,7 +831,7 @@ function renderPedidos(){
         <div>
           <div class="pc-name">${p.cliente}</div>
           <div class="pc-sub">${p.totalPiezas} pzas · ${p.rango}</div>
-          ${p.plaza==='acapulco'?'<span class="badge" style="background:#e0f2fe;color:#0369a1;">🌊 Acapulco</span>':''}
+          ${p.plaza==='acapulco'?'<span class="badge" style="background:#e0f2fe;color:#0369a1;">🌊 Acapulco</span>':'<span class="badge" style="background:#fce7f3;color:#9d174d;">🏙️ Puebla</span>'}
         </div>
         <div style="text-align:right;">
           <div class="pc-total">${fmt(p.totalMonto)}</div>
@@ -970,6 +1003,9 @@ function limpiarSaborInv(id){
 }
 
 function openEliminarTodoInv(){
+  const pass = prompt('🔐 Escribe la contraseña para eliminar todo el inventario:');
+  if(pass === null) return;
+  if(pass !== 'cp2026admin'){ showToast('❌ Contraseña incorrecta','#dc2626'); return; }
   openConfirm('¿Eliminar TODO el inventario?','Se pondrá en 0 el stock de TODOS los sabores.', () => {
     sabores.forEach(s => {
       const inv = inventario[s.id] || { cantidad:0, minimo:10 };
@@ -1212,11 +1248,20 @@ function generarPDF(id){
   doc.text('Helados Gourmet · Plaza '+(p.plaza==='acapulco'?'ACAPULCO':'PUEBLA'), 14, 26);
   doc.text('Mayo 2026', 14, 33);
   doc.setFontSize(9);
-  doc.text('Folio: #'+String(p.id).slice(-6), W-45, 18);
-  doc.text(fmtFecha(p.fecha), W-45, 24);
+  doc.text('Folio: #'+String(p.id).slice(-6), W-48, 18);
+  doc.text(fmtFecha(p.fecha), W-48, 25);
 
+  // Datos del cliente — layout dinámico sin encimados
+  let clienteLines = [];
+  clienteLines.push({ label:'Cliente:', value: p.cliente });
+  if(p.telefono) clienteLines.push({ label:'Teléfono:', value: p.telefono });
+  clienteLines.push({ label:'Plaza:', value: p.plaza==='acapulco'?'Acapulco':'Puebla' });
+  clienteLines.push({ label:'Esquema:', value: p.rango });
+  if(p.nota) clienteLines.push({ label:'Nota:', value: p.nota });
+
+  const boxH = 14 + clienteLines.length * 8;
   doc.setFillColor(252,231,243);
-  doc.roundedRect(10,47,W-20,30,3,3,'F');
+  doc.roundedRect(10, 47, W-20, boxH, 3, 3, 'F');
   doc.setTextColor(131,24,67);
   doc.setFont('helvetica','bold');
   doc.setFontSize(11);
@@ -1224,14 +1269,18 @@ function generarPDF(id){
   doc.setFont('helvetica','normal');
   doc.setFontSize(10);
   doc.setTextColor(31,41,55);
-  doc.text('Cliente: '+p.cliente, 16, 63);
-  if(p.telefono) doc.text('Teléfono: '+p.telefono, 16, 69);
-  doc.text('Esquema: '+p.rango, p.telefono?105:16, p.telefono?63:69);
-  if(p.nota) doc.text('Nota: '+p.nota, 16, p.telefono?69:75);
+  clienteLines.forEach((ln, i) => {
+    const y = 64 + i * 8;
+    doc.setFont('helvetica','bold');
+    doc.text(ln.label, 16, y);
+    doc.setFont('helvetica','normal');
+    doc.text(ln.value, 50, y);
+  });
 
+  const tableStartY = 47 + boxH + 6;
   const tableData = p.detalles.map(d => [d.nombre, d.qty.toString(), fmt(d.precio), fmt(d.subtotal)]);
   doc.autoTable({
-    startY:82,
+    startY: tableStartY,
     head:[['Sabor','Cantidad','Precio Unitario','Subtotal']],
     body:tableData, theme:'grid',
     headStyles:{ fillColor:[219,39,119], textColor:255, fontStyle:'bold', fontSize:10 },
@@ -1263,6 +1312,7 @@ function generarPDF(id){
 }
 
 // ===================== INIT =====================
+cargarLogo();
 initFirebase();
 if(plaza){
   document.getElementById('splash').style.display = 'none';
