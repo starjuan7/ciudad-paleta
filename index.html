@@ -939,17 +939,17 @@ function initFirebase(){
 }
 
 function renderAll(){
-  try { initFechas(); } catch(e){}
-  try { renderPedidos(); } catch(e){}
-  try { renderSaboresPedido(); } catch(e){}
-  try { renderInventario(); } catch(e){}
-  try { renderCatalogo(); } catch(e){}
-  try { renderReporte(); } catch(e){}
-  try { renderClientes(); } catch(e){}
-  try { renderBitacora(); } catch(e){}
-  try { renderProduccion(); } catch(e){}
-  try { renderHistorialPrecios(); } catch(e){}
-  try { renderUsuariosSistema(); } catch(e){}
+  setTimeout(function(){
+    try{initFechas();}catch(e){}
+    try{renderPedidos();}catch(e){}
+    try{renderSaboresPedido();}catch(e){}
+    try{renderInventario();}catch(e){}
+    try{renderCatalogo();}catch(e){}
+    try{renderReporte();}catch(e){}
+    try{renderClientes();}catch(e){}
+    try{renderBitacora();}catch(e){}
+    try{renderProduccion();}catch(e){}
+  }, 300);
 }
 
 function setSyncDot(state){
@@ -1946,7 +1946,8 @@ function setRepRango(r){
 let chartVentas = null;
 
 function renderReporte(){
-  const repIni = document.getElementById('rep-ini');
+  if(!document.getElementById('rep-ini')) return;
+  const ini = document.getElementById('rep-ini')?.value;  const repIni = document.getElementById('rep-ini');
   const repFin = document.getElementById('rep-fin');
   const repStats = document.getElementById('reporte-stats');
   if(!repIni || !repFin || !repStats) return;
