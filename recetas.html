@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Recetas – Ciudad Paleta</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--pk:#db2777;--pk2:#9d174d;--pk3:#fce7f3;--tl:#0d9488;--tl2:#0f766e;--yw:#fbbf24;--gr:#10b981;}
+body{font-family:'Nunito',sans-serif;background:#f9fafb;min-height:100vh;}
+
+.header{background:linear-gradient(90deg,var(--pk2),var(--tl));padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);position:sticky;top:0;z-index:100;}
+.header h1{font-family:'Fredoka One',cursive;color:white;font-size:1.3rem;flex:1;}
+.back-btn{color:white;text-decoration:none;font-weight:800;font-size:.85rem;background:rgba(255,255,255,.2);padding:7px 14px;border-radius:20px;}
+.logout-btn{background:rgba(255,255,255,.15);color:white;border:none;padding:7px 14px;border-radius:20px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.78rem;cursor:pointer;}
+
+/* TABS */
+.tabs{display:flex;overflow-x:auto;background:white;border-bottom:2px solid var(--pk3);padding:0 16px;gap:4px;position:sticky;top:57px;z-index:99;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.tab-btn{padding:12px 16px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;border:none;background:none;color:#9ca3af;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s;}
+.tab-btn.active{color:var(--pk);border-bottom-color:var(--pk);}
+.section{display:none;padding:16px;max-width:680px;margin:0 auto;}
+.section.active{display:block;}
+
+/* AUTH */
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:80vh;padding:20px;}
+.auth-card{background:white;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(219,39,119,.18);text-align:center;}
+.auth-card h2{font-family:'Fredoka One',cursive;color:var(--pk2);font-size:1.5rem;margin-bottom:6px;}
+.auth-card p{color:#6b7280;font-size:.88rem;margin-bottom:20px;}
+
+/* CARDS */
+.card{background:white;border-radius:16px;box-shadow:0 3px 18px rgba(219,39,119,.09);padding:16px;margin-bottom:14px;}
+.card-title{font-family:'Fredoka One',cursive;color:var(--pk2);font-size:1rem;margin-bottom:12px;}
+
+/* FORMS */
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:.8rem;font-weight:700;color:var(--pk2);margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:2px solid var(--pk3);border-radius:12px;font-family:'Nunito',sans-serif;font-size:.92rem;background:white;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--pk);}
+.field textarea{resize:vertical;min-height:80px;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:.85rem;cursor:pointer;border:none;transition:all .2s;}
+.btn-pk{background:var(--pk);color:white;} .btn-pk:hover{background:var(--pk2);}
+.btn-tl{background:var(--tl);color:white;} .btn-tl:hover{background:var(--tl2);}
+.btn-gr{background:#d1fae5;color:#065f46;} .btn-gr:hover{background:var(--gr);color:white;}
+.btn-gray{background:#f3f4f6;color:#374151;} .btn-gray:hover{background:#e5e7eb;}
+.btn-red{background:#fee2e2;color:#991b1b;} .btn-red:hover{background:#dc2626;color:white;}
+.btn-full{width:100%;padding:13px;font-size:.95rem;}
+.btn:disabled{opacity:.5;pointer-events:none;}
+
+/* LISTS */
+.item-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1.5px dashed #f3f4f6;}
+.item-row:last-child{border-bottom:none;}
+.item-name{flex:1;font-weight:700;font-size:.88rem;}
+.item-sub{font-size:.75rem;color:#6b7280;margin-top:2px;}
+.item-actions{display:flex;gap:6px;flex-shrink:0;}
+
+/* RECETA CARD */
+.receta-card{background:white;border-radius:16px;border-left:4px solid var(--pk);box-shadow:0 3px 18px rgba(219,39,119,.09);padding:14px;margin-bottom:12px;cursor:pointer;transition:all .2s;}
+.receta-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(219,39,119,.18);}
+.receta-nombre{font-family:'Fredoka One',cursive;color:var(--pk2);font-size:1.1rem;}
+.receta-meta{font-size:.78rem;color:#6b7280;margin-top:3px;}
+.receta-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.tag{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:800;}
+.tag-costo{background:#fef3c7;color:#92400e;}
+.tag-moldes{background:#e0f2fe;color:#075985;}
+.tag-ingredientes{background:#d1fae5;color:#065f46;}
+
+/* INGREDIENTE ROW en receta */
+.ing-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f9fafb;}
+.ing-nombre{flex:1;font-size:.87rem;font-weight:600;}
+.ing-cant{font-size:.87rem;color:var(--tl);font-weight:800;min-width:80px;text-align:right;}
+.ing-costo{font-size:.75rem;color:#9ca3af;text-align:right;min-width:60px;}
+
+/* PASO ROW */
+.paso-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f9fafb;}
+.paso-num{width:28px;height:28px;border-radius:50%;background:var(--pk);color:white;font-family:'Fredoka One',cursive;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.paso-text{flex:1;font-size:.87rem;line-height:1.6;}
+.paso-tiempo{font-size:.75rem;color:var(--tl);font-weight:700;margin-top:3px;}
+
+/* CONSULTA */
+.consulta-result{background:linear-gradient(135deg,var(--pk3),#e0f2fe);border-radius:16px;padding:16px;margin-top:12px;}
+.consulta-title{font-family:'Fredoka One',cursive;color:var(--pk2);font-size:1.2rem;margin-bottom:12px;}
+.costo-box{background:linear-gradient(135deg,var(--pk),var(--tl));color:white;border-radius:12px;padding:12px 16px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;}
+.costo-val{font-family:'Fredoka One',cursive;font-size:1.6rem;}
+
+/* LISTA COMPRAS */
+.compra-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:10px;margin-bottom:6px;background:white;}
+.compra-nombre{font-weight:700;font-size:.87rem;}
+.compra-cant{font-weight:800;color:var(--tl);font-size:.87rem;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center;padding:16px;}
+.modal-bg.open{display:flex;}
+.modal-box{background:white;border-radius:20px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-family:'Fredoka One',cursive;color:var(--pk2);font-size:1.2rem;margin-bottom:14px;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal-header .modal-title{margin-bottom:0;}
+.modal-x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:#9ca3af;line-height:1;padding:2px 6px;border-radius:8px;}
+.modal-x:hover{background:#fee2e2;color:#dc2626;}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+
+/* ING EDITOR */
+.ing-editor-row{display:flex;gap:6px;align-items:flex-end;margin-bottom:8px;padding:10px;background:#f9fafb;border-radius:10px;}
+.ing-editor-row .field{margin-bottom:0;flex:1;}
+.ing-editor-row .field.small{flex:0 0 80px;}
+
+/* PASO EDITOR */
+.paso-editor-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;padding:10px;background:#f9fafb;border-radius:10px;}
+.paso-editor-row .paso-num{cursor:default;}
+.paso-editor-row .field{margin-bottom:0;flex:1;}
+.paso-editor-row .field.small{flex:0 0 90px;}
+
+/* SEARCH */
+.search-box{position:relative;margin-bottom:12px;}
+.search-box input{width:100%;padding:9px 9px 9px 36px;border:2px solid var(--pk3);border-radius:12px;font-family:'Nunito',sans-serif;font-size:.92rem;}
+.search-box input:focus{outline:none;border-color:var(--pk);}
+.search-box .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#9ca3af;}
+
+.empty{text-align:center;padding:32px;color:#9ca3af;font-size:.85rem;}
+.empty .ico{font-size:2.5rem;margin-bottom:8px;}
+.perror{color:#dc2626;font-size:.8rem;font-weight:700;margin-top:6px;min-height:16px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:white;padding:10px 22px;border-radius:50px;font-weight:700;font-size:.88rem;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat{background:white;border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 10px rgba(219,39,119,.08);}
+.stat-num{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--pk);}
+.stat-lbl{font-size:.72rem;font-weight:800;color:#9ca3af;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/ciudad-paleta/" class="back-btn">← Sistema</a>
+  <h1>🍦 Recetas</h1>
+  <button class="logout-btn" onclick="cerrarSesion()">Salir 🚪</button>
+</div>
+
+<!-- AUTH -->
+<div class="auth-wrap" id="view-auth">
+  <div class="auth-card">
+    <div style="font-size:2.5rem;margin-bottom:10px;">🍦</div>
+    <h2>Ciudad Paleta</h2>
+    <p>Recetario de producción</p>
+    <div class="field"><label>Correo</label><input type="email" id="auth-email" placeholder="correo@ejemplo.com" autocomplete="email"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="auth-pass" placeholder="••••••••" onkeypress="if(event.key==='Enter')doAuth()"></div>
+    <button class="btn btn-pk btn-full" id="auth-btn" onclick="doAuth()">Iniciar Sesión</button>
+    <div class="perror" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="view-app" style="display:none;">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('recetas',this)">🍭 Recetas</button>
+    <button class="tab-btn" onclick="showTab('consultar',this)">🔍 Consultar</button>
+    <button class="tab-btn" onclick="showTab('produccion',this)">⚗️ Producción</button>
+    <button class="tab-btn tab-admin" onclick="showTab('ingredientes',this)">🥛 Ingredientes</button>
+    <button class="tab-btn tab-admin" onclick="showTab('materia',this)">📦 Mat. Prima</button>
+    <button class="tab-btn" onclick="showTab('bitacora',this)">📒 Bitácora</button>
+  </div>
+
+  <!-- ===== RECETAS ===== -->
+  <div id="tab-recetas" class="section active">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="st-recetas">0</div><div class="stat-lbl">Recetas</div></div>
+      <div class="stat"><div class="stat-num" id="st-ings">0</div><div class="stat-lbl">Ingredientes</div></div>
+      <div class="stat"><div class="stat-num" id="st-pasos">0</div><div class="stat-lbl">Pasos prom.</div></div>
+    </div>
+    <button class="btn btn-pk btn-full" onclick="abrirNuevaReceta()" style="margin-bottom:14px;">➕ Nueva Receta</button>
+    <div class="search-box"><span class="si">🔍</span><input type="text" id="search-recetas" placeholder="Buscar receta…" oninput="renderRecetas()"></div>
+    <div id="lista-recetas"></div>
+  </div>
+
+  <!-- ===== CONSULTAR ===== -->
+  <div id="tab-consultar" class="section">
+    <div class="card">
+      <div class="card-title">🔍 Consultar Receta</div>
+      <div class="field"><label>Sabor / Receta</label>
+        <select id="cons-receta"><option value="">— Selecciona una receta —</option></select>
+      </div>
+      <div class="field"><label>Número de moldes (1 molde = 40 pzas)</label>
+        <input type="number" id="cons-moldes" min="1" value="1" oninput="renderConsulta()">
+      </div>
+      <button class="btn btn-pk btn-full" onclick="renderConsulta()">📋 Ver Receta</button>
+    </div>
+    <div id="consulta-resultado"></div>
+  </div>
+
+  <!-- ===== PRODUCCION ===== -->
+  <div id="tab-produccion" class="section">
+    <div class="card">
+      <div class="card-title">⚗️ Iniciar Producción</div>
+      <p style="font-size:.83rem;color:#6b7280;margin-bottom:12px;">Selecciona la receta que vas a producir. Se descontará del inventario de materia prima al confirmar.</p>
+      <div class="field"><label>Receta a producir</label>
+        <select id="prod-receta-sel"><option value="">— Selecciona receta —</option></select>
+      </div>
+      <div class="field"><label>Número de moldes</label>
+        <input type="number" id="prod-moldes" min="1" value="1">
+      </div>
+      <button class="btn btn-pk btn-full" onclick="iniciarProduccion()">⚗️ Iniciar Producción</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Producciones Activas</div>
+      <div id="producciones-activas"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:#9ca3af;">Historial Reciente</div>
+      <div id="producciones-historial"></div>
+    </div>
+  </div>
+
+  <!-- ===== MATERIA PRIMA ===== -->
+  <div id="tab-materia" class="section">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn btn-pk" onclick="abrirMovMateria()" style="flex:1;">➕ Agregar Stock</button>
+      <button class="btn btn-gray" onclick="generarPDFMateria()" style="flex:1;">📄 PDF Inventario</button>
+    </div>
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="mat-ok" style="font-size:1.4rem;color:var(--gr);">0</div><div class="stat-lbl">En stock</div></div>
+      <div class="stat"><div class="stat-num" id="mat-bajo" style="font-size:1.4rem;color:var(--yw);">0</div><div class="stat-lbl">Stock bajo</div></div>
+      <div class="stat"><div class="stat-num" id="mat-out" style="font-size:1.4rem;color:#dc2626;">0</div><div class="stat-lbl">Sin stock</div></div>
+    </div>
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <div class="search-box" style="flex:2;margin-bottom:0;"><span class="si">🔍</span><input type="text" id="search-materia" placeholder="Buscar ingrediente…" oninput="renderMateria()"></div>
+      <select class="field" id="mat-filter" style="flex:1;min-width:110px;padding:9px 10px;border:2px solid var(--pk3);border-radius:12px;" onchange="renderMateria()">
+        <option value="">Todos</option>
+        <option value="ok">✅ En stock</option>
+        <option value="bajo">⚠️ Stock bajo</option>
+        <option value="out">❌ Sin stock</option>
+      </select>
+      <select class="field" id="mat-sort" style="flex:1;min-width:110px;padding:9px 10px;border:2px solid var(--pk3);border-radius:12px;" onchange="renderMateria()">
+        <option value="alfa">A → Z</option>
+        <option value="stock-asc">Stock ↑</option>
+        <option value="stock-desc">Stock ↓</option>
+      </select>
+    </div>
+    <div id="materia-list"></div>
+  </div>
+
+  <!-- ===== BITACORA RECETAS ===== -->
+  <div id="tab-bitacora" class="section">
+    <div class="card">
+      <div class="card-title">📒 Bitácora de Producción</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <input type="date" id="bit-ini" class="field" style="flex:1;padding:9px 10px;border:2px solid var(--pk3);border-radius:12px;" oninput="renderBitacoraRecetas()">
+        <input type="date" id="bit-fin" class="field" style="flex:1;padding:9px 10px;border:2px solid var(--pk3);border-radius:12px;" oninput="renderBitacoraRecetas()">
+      </div>
+      <div class="search-box"><span class="si">🔍</span><input type="text" id="search-bit" placeholder="Buscar usuario, receta…" oninput="renderBitacoraRecetas()"></div>
+      <div id="bitacora-recetas-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== INGREDIENTES ===== -->
+  <div id="tab-ingredientes" class="section">
+    <button class="btn btn-pk btn-full" onclick="abrirNuevoIng()" style="margin-bottom:14px;">➕ Nuevo Ingrediente</button>
+    <div class="search-box"><span class="si">🔍</span><input type="text" id="search-ings" placeholder="Buscar ingrediente…" oninput="renderIngredientes()"></div>
+    <div class="card">
+      <div id="lista-ingredientes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALES ===== -->
+
+<!-- Modal: Movimiento Materia Prima -->
+<div class="modal-bg" id="modal-materia">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="modal-mat-title">📦 Movimiento de Stock</div><button class="modal-x" onclick="confirmCancelar('modal-materia')" title="Cerrar">✕</button></div>
+    <div class="field"><label>Ingrediente *</label>
+      <select id="mat-ing-sel"></select>
+    </div>
+    <div class="field"><label>Acción *</label>
+      <select id="mat-accion">
+        <option value="agregar">➕ Agregar stock</option>
+        <option value="quitar">➖ Quitar stock</option>
+        <option value="ajuste">📌 Ajuste manual</option>
+      </select>
+    </div>
+    <div class="field"><label>Cantidad *</label>
+      <input type="number" id="mat-cantidad" min="0" step="0.01" placeholder="0">
+    </div>
+    <div class="field"><label>Stock mínimo</label>
+      <input type="number" id="mat-minimo" min="0" step="0.01" placeholder="0">
+    </div>
+    <div class="field"><label>Motivo / Nota</label>
+      <input type="text" id="mat-motivo" placeholder="Ej: Compra semanal">
+    </div>
+    <div class="perror" id="mat-error"></div>
+    <div class="modal-btns">
+      <button class="btn btn-pk" onclick="guardarMovMateria()">💾 Guardar</button>
+      <button class="btn btn-gray" onclick="confirmCancelar('modal-materia')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Checklist Producción -->
+<div class="modal-bg" id="modal-checklist">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-header"><div class="modal-title" id="checklist-title">⚗️ Produciendo...</div><button class="modal-x" onclick="cancelarProduccion()" title="Cerrar">✕</button></div>
+    <div id="checklist-info" style="font-size:.82rem;color:#6b7280;margin-bottom:12px;background:#f9fafb;padding:10px 12px;border-radius:10px;"></div>
+    <div style="font-family:'Fredoka One',cursive;color:var(--pk2);margin-bottom:8px;font-size:.95rem;">🥛 Ingredientes — marca conforme los agregas</div>
+    <div id="checklist-ings"></div>
+    <div style="font-family:'Fredoka One',cursive;color:var(--tl2);margin:14px 0 8px;font-size:.95rem;">📋 Pasos de elaboración</div>
+    <div id="checklist-pasos"></div>
+    <div id="checklist-ml" style="margin:10px 0;"></div>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn btn-gr" id="btn-terminar" onclick="confirmTerminar(terminarProduccion)">✅ Producción Terminada</button>
+      <button class="btn btn-red" onclick="confirmCancelarProduccion()">❌ Cancelar producción</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ingrediente -->
+<div class="modal-bg" id="modal-ing">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="modal-ing-title">🥛 Ingrediente</div><button class="modal-x" onclick="confirmCancelar('modal-ing')" title="Cerrar">✕</button></div>
+    <!-- Autofill from DB -->
+    <div class="field">
+      <label>Buscar en base de datos <span style="font-weight:400;color:var(--tl);font-size:.75rem;">— 102 ingredientes precargados</span></label>
+      <select id="ing-db-sel" onchange="autoFillIngFromDB()">
+        <option value="">— Selecciona o escribe manualmente —</option>
+      </select>
+    </div>
+    <div class="field"><label>Nombre *</label><input type="text" id="ing-nombre" placeholder="Ej: Chocolate oscuro"></div>
+    <div class="field"><label>Unidad de medida *</label>
+      <select id="ing-unidad">
+        <option value="gr">Gramos (gr)</option>
+        <option value="kg">Kilogramos (kg)</option>
+        <option value="ml">Mililitros (ml)</option>
+        <option value="lt">Litros (lt)</option>
+        <option value="pzas">Piezas (pzas)</option>
+        <option value="cdas">Cucharadas (cdas)</option>
+        <option value="cditas">Cucharaditas (cditas)</option>
+        <option value="tazas">Tazas</option>
+      </select>
+    </div>
+    <div class="field"><label>Tipo de ingrediente *</label>
+      <select id="ing-tipo">
+        <option value="liquido">💧 Líquido — aporta volumen a la mezcla</option>
+        <option value="solido">🍚 Sólido/Polvo — aporta sólidos disueltos</option>
+        <option value="decoracion">🎨 Decoración — se agrega al final</option>
+      </select>
+    </div>
+    <div class="field" id="wrap-densidad">
+      <label>Densidad (g/ml) <span style="font-weight:400;color:#9ca3af;">— se autocompletará si eliges de la BD</span></label>
+      <input type="number" id="ing-densidad" placeholder="Ej: 1.031" min="0.1" max="2.0" step="0.001">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;" id="wrap-composicion">
+      <div class="field" style="margin-bottom:0;"><label>% Grasa</label><input type="number" id="ing-grasa" placeholder="0" min="0" max="100" step="0.1"></div>
+      <div class="field" style="margin-bottom:0;"><label>% Proteína</label><input type="number" id="ing-proteina" placeholder="0" min="0" max="100" step="0.1"></div>
+      <div class="field" style="margin-bottom:0;"><label>% Sólidos</label><input type="number" id="ing-solidos" placeholder="0" min="0" max="100" step="0.1"></div>
+    </div>
+    <div class="field"><label>Precio aproximado por unidad ($) <span style="font-weight:400;color:#9ca3af;">— opcional</span></label>
+      <input type="number" id="ing-precio" placeholder="Ej: 45.00 por kg" min="0" step="0.01">
+    </div>
+    <div class="field"><label>Categoría</label>
+      <select id="ing-categoria">
+        <option value="lacteo">🥛 Lácteo</option>
+        <option value="chocolate">🍫 Chocolate</option>
+        <option value="fruta">🍓 Fruta</option>
+        <option value="dulce">🍬 Dulce / Golosina</option>
+        <option value="base">🧪 Base / Mezcla</option>
+        <option value="azucar">🍚 Azúcares</option>
+        <option value="grasa">🧈 Grasa</option>
+        <option value="fruto_seco">🥜 Fruto seco</option>
+        <option value="decoracion">🎨 Decoración</option>
+        <option value="otro">📦 Otro</option>
+      </select>
+    </div>
+    <input type="hidden" id="ing-id">
+    <div class="perror" id="ing-error"></div>
+    <div class="modal-btns">
+      <button class="btn btn-pk" onclick="guardarIng()">💾 Guardar</button>
+      <button class="btn btn-gray" onclick="confirmCancelar('modal-ing')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Receta -->
+<div class="modal-bg" id="modal-receta">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="modal-receta-title">🍦 Nueva Receta</div><button class="modal-x" onclick="confirmCancelar('modal-receta')" title="Cerrar">✕</button></div>
+    <div class="field"><label>Nombre del sabor *</label><input type="text" id="rec-nombre" placeholder="Ej: Kinder Delice"></div>
+    <div class="field"><label>Moldes base de la receta *</label>
+      <select id="rec-moldes-base">
+        <option value="1">1 molde (40 pzas)</option>
+        <option value="2">2 moldes (80 pzas)</option>
+        <option value="3">3 moldes (120 pzas)</option>
+        <option value="5">5 moldes (200 pzas)</option>
+        <option value="10">10 moldes (400 pzas)</option>
+      </select>
+    </div>
+    <div class="field"><label>Descripción / notas generales</label>
+      <textarea id="rec-desc" placeholder="Notas sobre el sabor, tips de elaboración, etc."></textarea>
+    </div>
+
+    <!-- Ingredientes de la receta -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--pk2);margin-bottom:8px;">🥛 Ingredientes</div>
+      <div id="rec-ings-editor"></div>
+      <button class="btn btn-gr" onclick="agregarIngRow()" style="width:100%;margin-top:6px;">+ Agregar ingrediente</button>
+      <div id="ml-acumulado" style="margin-top:8px;display:none;background:#e0f2fe;border-radius:10px;padding:8px 12px;font-size:.83rem;font-weight:700;color:#075985;">💧 Total líquidos acumulados: <span id="ml-valor">0 ml</span></div>
+    </div>
+
+    <!-- Pasos -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:.82rem;font-weight:700;color:var(--pk2);margin-bottom:8px;">📋 Pasos de elaboración</div>
+      <div id="rec-pasos-editor"></div>
+      <button class="btn btn-tl" onclick="agregarPasoRow()" style="width:100%;margin-top:6px;">+ Agregar paso</button>
+    </div>
+
+    <input type="hidden" id="rec-id">
+    <div class="perror" id="rec-error"></div>
+    <div class="modal-btns">
+      <button class="btn btn-pk" onclick="guardarReceta()">💾 Guardar Receta</button>
+      <button class="btn btn-gray" onclick="confirmCancelar('modal-receta')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ver Receta -->
+<div class="modal-bg" id="modal-ver-receta">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="modal-ver-title">🍦 Receta</div><button class="modal-x" onclick="cerrarModal('modal-ver-receta')" title="Cerrar">✕</button></div>
+    <div id="modal-ver-body"></div>
+    <div class="modal-btns" id="modal-ver-btns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CFG = {
+  apiKey:"AIzaSyBhVXmBy1G_Ce76Q02Jg9AVPnUuRIlb-94",
+  authDomain:"ciudad-paleta.firebaseapp.com",
+  databaseURL:"https://ciudad-paleta-default-rtdb.firebaseio.com",
+  projectId:"ciudad-paleta",
+  storageBucket:"ciudad-paleta.firebasestorage.app",
+  messagingSenderId:"1064653839055",
+  appId:"1:1064653839055:web:9f919d806dcad234bdf5ba"
+};
+firebase.initializeApp(CFG);
+var db = firebase.database();
+var auth = firebase.auth();
+var currentUser = null;
+var recetas = [];
+var ingredientes = [];
+
+// ===== AUTH =====
+auth.onAuthStateChanged(async function(user){
+  if(!user){ mostrarAuth(); return; }
+  var snap = await db.ref('usuarios/'+user.uid).once('value');
+  var ud = snap.val()||{};
+  if(ud.rol!=='admin' && ud.rol!=='empleado'){
+    await auth.signOut(); showErr('⚠️ Acceso no autorizado'); return;
+  }
+  currentUser = user;
+  window._currentUserRol = ud.rol||'empleado';
+  window._currentUserNombre = ud.nombre||ud.email||'Usuario';
+  document.getElementById('view-auth').style.display='none';
+  document.getElementById('view-app').style.display='block';
+  // Hide costs for empleados
+  if(ud.rol!=='admin'){
+    document.querySelectorAll('.admin-cost').forEach(function(el){el.style.display='none';});
+  }
+  // Hide admin-only tabs for empleados
+  if(ud.rol!=='admin'){
+    var recTab=document.querySelector('.tab-btn[onclick*="recetas"]');
+    // Keep recetas tab but manage permissions via role
+  }
+  suscribir();
+});
+
+function mostrarAuth(){
+  document.getElementById('view-auth').style.display='flex';
+  document.getElementById('view-app').style.display='none';
+}
+function showErr(msg){
+  var el=document.getElementById('auth-error'); if(el) el.textContent=msg;
+  var btn=document.getElementById('auth-btn'); if(btn){btn.disabled=false;btn.textContent='Iniciar Sesión';}
+}
+async function doAuth(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('auth-pass').value;
+  var btn=document.getElementById('auth-btn');
+  if(!email||!pass){showErr('⚠️ Ingresa correo y contraseña');return;}
+  btn.disabled=true; btn.textContent='Verificando…';
+  document.getElementById('auth-error').textContent='';
+  try{ await auth.signInWithEmailAndPassword(email,pass); }
+  catch(e){
+    var m={'auth/user-not-found':'❌ Usuario no encontrado','auth/wrong-password':'❌ Contraseña incorrecta','auth/invalid-credential':'❌ Credenciales incorrectas'};
+    showErr(m[e.code]||'❌ '+e.message);
+  }
+}
+async function cerrarSesion(){ await auth.signOut(); mostrarAuth(); }
+
+
+// ===== BASE DE DATOS DE INGREDIENTES =====
+// Fuente: formulación heladera artesanal, tablas nutricionales, investigación de densidades
+// tipo: 'liquido' = aporta volumen a la mezcla | 'solido' = aporta sólidos disueltos | 'decoracion' = decoración final
+// densidad: g/ml | grasa/proteina/solidos/azucar: % del peso total | pac: poder anticongelante relativo (sacarosa=1)
+
+var INGS_DB = [
+  // ===== LÁCTEOS =====
+  {nombre:'Leche entera (líquida)',          cat:'lacteo',     tipo:'liquido',   densidad:1.031, grasa:3.5,  proteina:3.2, solidos:12.5, azucar:4.8,  pac:0},
+  {nombre:'Crema para batir 35% MG',        cat:'lacteo',     tipo:'liquido',   densidad:0.994, grasa:35.0, proteina:2.1, solidos:40.0, azucar:3.2,  pac:0},
+  {nombre:'Queso Philadelphia',             cat:'lacteo',     tipo:'solido',    densidad:1.050, grasa:34.0, proteina:6.0, solidos:45.0, azucar:2.5,  pac:0},
+  {nombre:'Lechera (leche condensada)',     cat:'lacteo',     tipo:'liquido',   densidad:1.320, grasa:8.5,  proteina:7.5, solidos:72.0, azucar:55.0, pac:0.8},
+  {nombre:'Baileys',                        cat:'lacteo',     tipo:'liquido',   densidad:1.060, grasa:5.0,  proteina:2.0, solidos:25.0, azucar:18.0, pac:0.4},
+  // ===== FRUTAS FRESCAS =====
+  {nombre:'Mango ataulfo maduro',           cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.4,  proteina:0.8, solidos:17.0, azucar:13.4, pac:0.7},
+  {nombre:'Fresa',                          cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.3,  proteina:0.7, solidos:9.0,  azucar:7.0,  pac:0.7},
+  {nombre:'Pepino',                         cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.1,  proteina:0.7, solidos:3.6,  azucar:1.7,  pac:0.2},
+  {nombre:'Kiwi',                           cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.5,  proteina:1.1, solidos:15.0, azucar:9.0,  pac:0.7},
+  {nombre:'Piña',                           cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.1,  proteina:0.5, solidos:13.1, azucar:9.9,  pac:0.7},
+  {nombre:'Melón',                          cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.2,  proteina:0.8, solidos:9.1,  azucar:7.9,  pac:0.5},
+  {nombre:'Sandía',                         cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.2,  proteina:0.6, solidos:7.6,  azucar:6.2,  pac:0.5},
+  {nombre:'Mamey',                          cat:'fruta',      tipo:'solido',    densidad:1.000, grasa:0.5,  proteina:1.5, solidos:28.0, azucar:20.0, pac:0.7},
+  {nombre:'Maracuyá (pulpa)',               cat:'fruta',      tipo:'solido',    densidad:1.050, grasa:0.4,  proteina:2.2, solidos:20.0, azucar:11.2, pac:0.7},
+  {nombre:'Coco pulpa',                     cat:'fruta',      tipo:'solido',    densidad:0.900, grasa:33.5, proteina:3.3, solidos:47.0, azucar:6.2,  pac:0},
+  {nombre:'Elote dorado granos',            cat:'fruta',      tipo:'solido',    densidad:0.750, grasa:1.4,  proteina:3.3, solidos:25.0, azucar:6.3,  pac:0.3},
+  // ===== FRUTAS CONGELADAS =====
+  {nombre:'Blueberries congelados',         cat:'fruta',      tipo:'solido',    densidad:0.600, grasa:0.3,  proteina:0.7, solidos:14.5, azucar:10.0, pac:0.7},
+  {nombre:'Mix frutos rojos',              cat:'fruta',      tipo:'solido',    densidad:0.600, grasa:0.5,  proteina:1.0, solidos:13.0, azucar:8.5,  pac:0.7},
+  // ===== JUGOS =====
+  {nombre:'Jugo de limón',                  cat:'fruta',      tipo:'liquido',   densidad:1.020, grasa:0.2,  proteina:0.4, solidos:8.0,  azucar:2.5,  pac:0.4},
+  {nombre:'Jugo naranja Único Fresco Jumex',cat:'fruta',      tipo:'liquido',   densidad:1.040, grasa:0.2,  proteina:0.7, solidos:11.0, azucar:9.0,  pac:0.6},
+  // ===== DULCES / GOLOSINAS MEXICANAS =====
+  {nombre:'Skwinkles tradicional',          cat:'dulce',      tipo:'decoracion',densidad:0.700, grasa:2.0,  proteina:0.5, solidos:80.0, azucar:60.0, pac:0},
+  {nombre:'Pulparindo',                     cat:'dulce',      tipo:'decoracion',densidad:0.700, grasa:1.5,  proteina:0.5, solidos:82.0, azucar:58.0, pac:0},
+  {nombre:'Pelón Pelo Rico jarabe',         cat:'dulce',      tipo:'liquido',   densidad:1.300, grasa:0.5,  proteina:0.3, solidos:75.0, azucar:60.0, pac:1.0},
+  {nombre:'Chamoy',                         cat:'dulce',      tipo:'liquido',   densidad:1.150, grasa:0.5,  proteina:0.3, solidos:45.0, azucar:35.0, pac:0.5},
+  {nombre:'Miguelito',                      cat:'dulce',      tipo:'decoracion',densidad:0.800, grasa:0.5,  proteina:0.5, solidos:85.0, azucar:55.0, pac:0},
+  {nombre:'Picafresa',                      cat:'dulce',      tipo:'decoracion',densidad:0.750, grasa:1.0,  proteina:0.5, solidos:82.0, azucar:62.0, pac:0},
+  {nombre:'Calahua',                        cat:'dulce',      tipo:'liquido',   densidad:1.200, grasa:0.0,  proteina:0.0, solidos:60.0, azucar:55.0, pac:0.8},
+  {nombre:'Mazapán troceado',               cat:'dulce',      tipo:'decoracion',densidad:0.800, grasa:35.0, proteina:28.0,solidos:95.0, azucar:22.0, pac:0},
+  // ===== MARCAS ESPECÍFICAS =====
+  {nombre:'KitKat',                         cat:'decoracion', tipo:'decoracion',densidad:0.500, grasa:25.0, proteina:6.0, solidos:97.0, azucar:49.0, pac:0},
+  {nombre:'Gansito mini',                   cat:'decoracion', tipo:'decoracion',densidad:0.400, grasa:14.0, proteina:5.0, solidos:93.0, azucar:45.0, pac:0},
+  {nombre:'Ferrero Rocher',                 cat:'decoracion', tipo:'decoracion',densidad:0.500, grasa:35.6, proteina:6.6, solidos:97.0, azucar:45.1, pac:0},
+  {nombre:'Kinder Delice',                  cat:'decoracion', tipo:'decoracion',densidad:0.400, grasa:22.0, proteina:5.0, solidos:95.0, azucar:55.0, pac:0},
+  {nombre:'Conejo Turín',                   cat:'decoracion', tipo:'decoracion',densidad:0.450, grasa:28.0, proteina:5.5, solidos:96.0, azucar:50.0, pac:0},
+  {nombre:'Bubulubu mini',                  cat:'decoracion', tipo:'decoracion',densidad:0.450, grasa:8.0,  proteina:3.0, solidos:88.0, azucar:55.0, pac:0},
+  {nombre:'Carlos V Stick',                 cat:'decoracion', tipo:'decoracion',densidad:0.600, grasa:22.0, proteina:3.5, solidos:96.0, azucar:60.0, pac:0},
+  {nombre:'Galletas Oreo',                  cat:'decoracion', tipo:'decoracion',densidad:0.500, grasa:20.0, proteina:4.0, solidos:97.0, azucar:44.0, pac:0},
+  {nombre:'Galleta María',                  cat:'decoracion', tipo:'decoracion',densidad:0.450, grasa:11.0, proteina:8.0, solidos:97.0, azucar:28.0, pac:0},
+  // ===== CHOCOLATES / POLVOS =====
+  {nombre:'Nutella',                        cat:'chocolate',  tipo:'solido',    densidad:1.200, grasa:30.9, proteina:6.3, solidos:97.0, azucar:56.3, pac:0.4},
+  {nombre:'Carlos V polvo',                 cat:'chocolate',  tipo:'solido',    densidad:0.600, grasa:22.0, proteina:3.5, solidos:96.0, azucar:60.0, pac:0.3},
+  {nombre:'Cacao',                          cat:'chocolate',  tipo:'solido',    densidad:0.500, grasa:13.0, proteina:20.0,solidos:95.0, azucar:2.0,  pac:0},
+  {nombre:'Cocoa en polvo',                 cat:'chocolate',  tipo:'solido',    densidad:0.500, grasa:11.0, proteina:19.0,solidos:95.0, azucar:1.5,  pac:0},
+  // ===== FRUTOS SECOS =====
+  {nombre:'Pistache tostado',               cat:'fruto_seco', tipo:'decoracion',densidad:0.500, grasa:45.3, proteina:20.2,solidos:97.0, azucar:7.7,  pac:0},
+  {nombre:'Nuez pecana trozos',             cat:'fruto_seco', tipo:'decoracion',densidad:0.450, grasa:72.0, proteina:9.2, solidos:97.0, azucar:3.9,  pac:0},
+  // ===== ENDULZANTES =====
+  {nombre:'Splenda (sucralosa)',            cat:'azucar',     tipo:'solido',    densidad:0.500, grasa:0.0,  proteina:0.0, solidos:95.0, azucar:0.0,  pac:0},
+  {nombre:'Azúcar estándar',               cat:'azucar',     tipo:'solido',    densidad:0.900, grasa:0.0,  proteina:0.0, solidos:99.7, azucar:100.0,pac:1.0},
+  {nombre:'Glucosa (jarabe)',               cat:'azucar',     tipo:'liquido',   densidad:1.430, grasa:0.0,  proteina:0.0, solidos:80.0, azucar:75.0, pac:0.6},
+];
+
+
+// ===== ML CONVERSION =====
+// Conversion factors to ml
+var ML_FACTOR = {
+  ml: 1, lt: 1000,
+  gr: 1, kg: 1000,      // water-based: 1gr ≈ 1ml
+  cdas: 15, cditas: 5, tazas: 240,
+  pzas: null             // no conversion
+};
+// Units considered liquid/convertible
+var LIQUID_UNITS = ['ml','lt','cdas','cditas','tazas'];
+// Density approximations for weight units (gr/ml)
+var DENSITY = { gr: 1, kg: 1000 }; // default water density
+
+function toMl(cantidad, unidad){
+  if(unidad === 'lt') return cantidad * 1000;
+  if(unidad === 'ml') return cantidad;
+  if(unidad === 'cdas') return cantidad * 15;
+  if(unidad === 'cditas') return cantidad * 5;
+  if(unidad === 'tazas') return cantidad * 240;
+  if(unidad === 'gr') return cantidad * 1;   // approx 1gr = 1ml
+  if(unidad === 'kg') return cantidad * 1000;
+  return null; // pzas = no conversion
+}
+
+function fmtMl(ml){
+  if(ml === null) return '';
+  if(ml >= 1000) return '≈ '+(ml/1000).toFixed(2)+' lt';
+  return '≈ '+Math.round(ml)+' ml';
+}
+
+// ===== SUSCRIBIR =====
+function suscribir(){
+  db.ref('recetas').on('value',function(snap){
+    recetas = snap.val() ? Object.values(snap.val()) : [];
+    renderRecetas(); renderConsultaSelector(); renderComprasSelector(); actualizarStats();
+  });
+  db.ref('ingredientes_receta').on('value',function(snap){
+    ingredientes = snap.val() ? Object.values(snap.val()) : [];
+    renderIngredientes(); actualizarStats();
+  });
+}
+
+// ===== TABS =====
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='consultar') renderConsultaSelector();
+  if(id==='compras') renderComprasSelector();
+}
+
+// ===== STATS =====
+function actualizarStats(){
+  document.getElementById('st-recetas').textContent = recetas.length;
+  document.getElementById('st-ings').textContent = ingredientes.length;
+  var totalPasos = recetas.reduce(function(a,r){ return a+(r.pasos?r.pasos.length:0); },0);
+  document.getElementById('st-pasos').textContent = recetas.length ? Math.round(totalPasos/recetas.length) : 0;
+}
+
+// ===== INGREDIENTES =====
+function renderIngredientes(){
+  var q=(document.getElementById('search-ings')?document.getElementById('search-ings').value:'').toLowerCase();
+  var list=document.getElementById('lista-ingredientes');
+  var filtered=ingredientes.filter(function(i){return i.nombre.toLowerCase().includes(q);})
+    .sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');});
+  if(!filtered.length){list.innerHTML='<div class="empty"><div class="ico">🥛</div><p>Sin ingredientes. Agrega el primero.</p></div>';return;}
+  var CAT={'lacteo':'🥛','chocolate':'🍫','fruta':'🍓','dulce':'🍬','base':'🧪','azucar':'🍚','decoracion':'🎨','otro':'📦'};
+  list.innerHTML=filtered.map(function(i){
+    return '<div class="item-row">'+
+      '<div style="flex:1;">'+
+        '<div class="item-name">'+i.nombre+'</div>'+
+        '<div class="item-sub">'+(CAT[i.categoria]||'📦')+' '+i.categoria+' · Unidad: '+i.unidad+(i.precio?' · $'+parseFloat(i.precio).toFixed(2)+'/'+i.unidad:'')+'</div>'+
+      '</div>'+
+      '<div class="item-actions">'+
+        '<button class="btn btn-gray" onclick="editarIng(\''+i.id+'\')">✏️</button>'+
+        '<button class="btn btn-red" onclick="eliminarIng(\''+i.id+'\',\''+i.nombre+'\')">🗑</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function poblarIngDB(){
+  var sel=document.getElementById('ing-db-sel');
+  if(!sel||sel.options.length>1) return;
+  var CAT_LABEL={'lacteo':'🥛','chocolate':'🍫','fruta':'🍓','dulce':'🍬','base':'🧪','azucar':'🍚','grasa':'🧈','fruto_seco':'🥜','decoracion':'🎨','otro':'📦'};
+  var sorted=[...INGS_DB].sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');});
+  sorted.forEach(function(ing){
+    var opt=document.createElement('option');
+    opt.value=ing.nombre;
+    opt.textContent=(CAT_LABEL[ing.cat]||'📦')+' '+ing.nombre;
+    opt.dataset.ing=JSON.stringify(ing);
+    sel.appendChild(opt);
+  });
+}
+
+function autoFillIngFromDB(){
+  var sel=document.getElementById('ing-db-sel');
+  if(!sel.value) return;
+  var opt=sel.options[sel.selectedIndex];
+  try{
+    var ing=JSON.parse(opt.dataset.ing);
+    document.getElementById('ing-nombre').value=ing.nombre;
+    document.getElementById('ing-categoria').value=ing.cat||'otro';
+    document.getElementById('ing-tipo').value=ing.tipo||'solido';
+    document.getElementById('ing-densidad').value=ing.densidad||'';
+    document.getElementById('ing-grasa').value=ing.grasa||'';
+    document.getElementById('ing-proteina').value=ing.proteina||'';
+    document.getElementById('ing-solidos').value=ing.solidos||'';
+    // Auto-set unit based on type
+    if(ing.tipo==='liquido') document.getElementById('ing-unidad').value='ml';
+    else if(ing.tipo==='solido') document.getElementById('ing-unidad').value='gr';
+    else document.getElementById('ing-unidad').value='gr';
+  }catch(e){}
+}
+
+function abrirNuevoIng(){
+  poblarIngDB();
+  document.getElementById('ing-db-sel').value='';
+  document.getElementById('ing-nombre').value='';
+  document.getElementById('ing-unidad').value='gr';
+  document.getElementById('ing-precio').value='';
+  document.getElementById('ing-categoria').value='otro';
+  document.getElementById('ing-tipo').value='solido';
+  document.getElementById('ing-densidad').value='';
+  document.getElementById('ing-grasa').value='';
+  document.getElementById('ing-proteina').value='';
+  document.getElementById('ing-solidos').value='';
+  document.getElementById('ing-id').value='';
+  document.getElementById('ing-error').textContent='';
+  document.getElementById('modal-ing-title').textContent='🥛 Nuevo Ingrediente';
+  document.getElementById('modal-ing').classList.add('open');
+}
+
+function editarIng(id){
+  var ing=ingredientes.find(function(i){return i.id===id;});
+  if(!ing) return;
+  poblarIngDB();
+  document.getElementById('modal-ing-title').textContent='✏️ Editar Ingrediente';
+  document.getElementById('ing-id').value=id;
+  document.getElementById('ing-nombre').value=ing.nombre;
+  document.getElementById('ing-unidad').value=ing.unidad;
+  document.getElementById('ing-precio').value=ing.precio||'';
+  document.getElementById('ing-categoria').value=ing.categoria||'otro';
+  document.getElementById('ing-tipo').value=ing.tipo||'solido';
+  document.getElementById('ing-densidad').value=ing.densidad||'';
+  document.getElementById('ing-grasa').value=ing.grasa||'';
+  document.getElementById('ing-proteina').value=ing.proteina||'';
+  document.getElementById('ing-solidos').value=ing.solidos||'';
+  document.getElementById('ing-db-sel').value='';
+  document.getElementById('ing-error').textContent='';
+  document.getElementById('modal-ing').classList.add('open');
+}
+
+async function guardarIng(){
+  var nombre=document.getElementById('ing-nombre').value.trim();
+  var unidad=document.getElementById('ing-unidad').value;
+  var precio=parseFloat(document.getElementById('ing-precio').value)||0;
+  var cat=document.getElementById('ing-categoria').value;
+  var tipo=document.getElementById('ing-tipo').value;
+  var densidad=parseFloat(document.getElementById('ing-densidad').value)||null;
+  var grasa=parseFloat(document.getElementById('ing-grasa').value)||0;
+  var proteina=parseFloat(document.getElementById('ing-proteina').value)||0;
+  var solidos=parseFloat(document.getElementById('ing-solidos').value)||0;
+  var editId=document.getElementById('ing-id').value;
+  if(!nombre){document.getElementById('ing-error').textContent='⚠️ Nombre requerido';return;}
+  var id=editId||'ing_'+Date.now();
+  var data={id:id,nombre:nombre,unidad:unidad,precio:precio,categoria:cat,tipo:tipo,grasa:grasa,proteina:proteina,solidos:solidos};
+  if(densidad) data.densidad=densidad;
+  try{
+    await db.ref('ingredientes_receta/'+id).set(data);
+    cerrarModal('modal-ing');
+    showToast('✅ Ingrediente guardado');
+  }catch(e){document.getElementById('ing-error').textContent='❌ '+e.message;}
+}
+
+function eliminarIng(id,nombre){
+  if(!confirm('¿Eliminar ingrediente "'+nombre+'"?')) return;
+  db.ref('ingredientes_receta/'+id).remove().then(function(){ showToast('🗑 Ingrediente eliminado'); });
+}
+
+// ===== RECETAS =====
+function renderRecetas(){
+  var q=(document.getElementById('search-recetas')?document.getElementById('search-recetas').value:'').toLowerCase();
+  var list=document.getElementById('lista-recetas');
+  var filtered=recetas.filter(function(r){return r.nombre.toLowerCase().includes(q);})
+    .sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');});
+  if(!filtered.length){list.innerHTML='<div class="empty"><div class="ico">🍦</div><p>Sin recetas. Crea la primera.</p></div>';return;}
+  list.innerHTML=filtered.map(function(r){
+    var numIngs=(r.ingredientes?r.ingredientes.length:0);
+    var numPasos=(r.pasos?r.pasos.length:0);
+    var costo=calcularCostoReceta(r,1);
+    var costoStr=costo>0?'$'+costo.toFixed(2)+'/molde':'Sin costo';
+    return '<div class="receta-card" onclick="verReceta(\''+r.id+'\')">' +
+      '<div class="receta-nombre">'+r.nombre+'</div>'+
+      '<div class="receta-meta">Base: '+r.moldesBase+' molde'+(r.moldesBase>1?'s':'')+' ('+((r.moldesBase||1)*40)+' pzas)</div>'+
+      '<div class="receta-tags">'+
+        '<span class="tag tag-ingredientes">🥛 '+numIngs+' ingredientes</span>'+
+        '<span class="tag tag-moldes">📋 '+numPasos+' pasos</span>'+
+        (costo>0?'<span class="tag tag-costo">💰 '+costoStr+'</span>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function calcularCostoReceta(receta, moldesDeseados){
+  if(!receta.ingredientes) return 0;
+  var factor = moldesDeseados / (receta.moldesBase||1);
+  return receta.ingredientes.reduce(function(total, ri){
+    var ing = ingredientes.find(function(i){return i.id===ri.ingId;});
+    if(!ing||!ing.precio) return total;
+    return total + (ri.cantidad * factor * parseFloat(ing.precio));
+  }, 0);
+}
+
+function abrirNuevaReceta(){
+  document.getElementById('modal-receta-title').textContent='🍦 Nueva Receta';
+  document.getElementById('rec-nombre').value='';
+  document.getElementById('rec-moldes-base').value='1';
+  document.getElementById('rec-desc').value='';
+  document.getElementById('rec-id').value='';
+  document.getElementById('rec-error').textContent='';
+  document.getElementById('rec-ings-editor').innerHTML='';
+  document.getElementById('rec-pasos-editor').innerHTML='';
+  agregarIngRow();
+  agregarPasoRow();
+  document.getElementById('modal-receta').classList.add('open');
+}
+
+function agregarIngRow(ing){
+  var wrap=document.getElementById('rec-ings-editor');
+  var div=document.createElement('div');
+  div.className='ing-editor-row';
+  var selectOpts='<option value="">— Ingrediente —</option>'+
+    ingredientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');})
+    .map(function(i){ return '<option value="'+i.id+'" '+(ing&&ing.ingId===i.id?'selected':'')+'>'+i.nombre+' ('+i.unidad+')</option>'; }).join('');
+  div.innerHTML=
+    '<div class="field"><label>Ingrediente</label><select class="ing-sel" onchange="actualizarMlAcumulado()">'+selectOpts+'</select></div>'+
+    '<div class="field small"><label>Cantidad</label><input type="number" class="ing-qty" min="0" step="0.01" value="'+(ing?ing.cantidad:'')+'" placeholder="0" oninput="actualizarMlAcumulado()"></div>'+
+    '<button class="btn btn-red" onclick="this.parentNode.remove();actualizarMlAcumulado();" style="margin-bottom:0;padding:8px 10px;flex-shrink:0;">🗑</button>';
+  wrap.appendChild(div);
+  actualizarMlAcumulado();
+}
+
+function actualizarMlAcumulado(){
+  var rows = document.querySelectorAll('#rec-ings-editor .ing-editor-row');
+  var totalGr=0, mlLiquidos=0, grSolidos=0, grDecoracion=0;
+  var totalGrasa=0, totalProteina=0, totalSolidos=0, totalAzucar=0;
+  rows.forEach(function(row){
+    var sel=row.querySelector('.ing-sel');
+    var qty=parseFloat(row.querySelector('.ing-qty').value)||0;
+    if(!sel||!sel.value||!qty) return;
+    var ing=ingredientes.find(function(i){return i.id===sel.value;});
+    if(!ing) return;
+    // Convert all to grams for calculation
+    var grAmt=qty;
+    if(ing.unidad==='kg') grAmt=qty*1000;
+    else if(ing.unidad==='lt') grAmt=qty*1000*(ing.densidad||1);
+    else if(ing.unidad==='ml') grAmt=qty*(ing.densidad||1);
+    else if(ing.unidad==='cdas') grAmt=qty*15*(ing.densidad||1);
+    else if(ing.unidad==='cditas') grAmt=qty*5*(ing.densidad||1);
+    else if(ing.unidad==='tazas') grAmt=qty*240*(ing.densidad||1);
+    totalGr+=grAmt;
+    // Group by type
+    var tipo=ing.tipo||'solido';
+    if(tipo==='liquido'){
+      var dens=ing.densidad||1;
+      var mlVal=0;
+      if(ing.unidad==='ml') mlVal=qty;
+      else if(ing.unidad==='lt') mlVal=qty*1000;
+      else if(ing.unidad==='cdas') mlVal=qty*15;
+      else if(ing.unidad==='cditas') mlVal=qty*5;
+      else if(ing.unidad==='tazas') mlVal=qty*240;
+      else mlVal=grAmt/dens; // gr/kg converted via density
+      mlLiquidos+=mlVal;
+    } else if(tipo==='solido') grSolidos+=grAmt;
+    else grDecoracion+=grAmt;
+    // Nutritional params
+    if(tipo!=='decoracion'){
+      totalGrasa+=(grAmt*(ing.grasa||0)/100);
+      totalProteina+=(grAmt*(ing.proteina||0)/100);
+      totalSolidos+=(grAmt*(ing.solidos||0)/100);
+    }
+  });
+  var div=document.getElementById('ml-acumulado');
+  if(!div) return;
+  if(totalGr===0){ div.style.display='none'; return; }
+  div.style.display='block';
+  var pctSolidos=totalGr>0?(totalSolidos/totalGr*100):0;
+  var pctGrasa=totalGr>0?(totalGrasa/totalGr*100):0;
+  var pctProteina=totalGr>0?(totalProteina/totalGr*100):0;
+  var pctAgua=100-pctSolidos;
+  // Semaphore colors
+  function semaforo(val,min,max){ return val<min?'#fca5a5':val>max?'#fca5a5':'#86efac'; }
+  div.innerHTML=
+    '<div style="font-weight:800;color:#075985;margin-bottom:8px;">📊 Análisis de la mezcla (en tiempo real)</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">'+
+      '<div style="background:#e0f2fe;border-radius:8px;padding:6px 8px;text-align:center;">'+
+        '<div style="font-size:.7rem;color:#075985;font-weight:700;">💧 Líquidos</div>'+
+        '<div style="font-size:.95rem;font-weight:800;color:#0369a1;">'+fmtMl(mlLiquidos)+'</div>'+
+      '</div>'+
+      '<div style="background:#f0fdf4;border-radius:8px;padding:6px 8px;text-align:center;">'+
+        '<div style="font-size:.7rem;color:#166534;font-weight:700;">🍚 Sólidos</div>'+
+        '<div style="font-size:.95rem;font-weight:800;color:#166534;">'+grSolidos.toFixed(1)+' gr</div>'+
+      '</div>'+
+      '<div style="background:#fef3c7;border-radius:8px;padding:6px 8px;text-align:center;">'+
+        '<div style="font-size:.7rem;color:#92400e;font-weight:700;">🎨 Decoración</div>'+
+        '<div style="font-size:.95rem;font-weight:800;color:#92400e;">'+grDecoracion.toFixed(1)+' gr</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:.72rem;font-weight:800;color:#6b7280;margin-bottom:4px;">PARÁMETROS TÉCNICOS (Base: '+totalGr.toFixed(0)+' gr)</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">'+
+      paramBox('% Sólidos totales',pctSolidos,30,40,'%',semaforo(pctSolidos,30,40),'Ideal: 30–40%')+
+      paramBox('% Grasas',pctGrasa,6,12,'%',semaforo(pctGrasa,3,12),'Ideal: 6–12%')+
+      paramBox('% Proteína',pctProteina,2,5,'%',semaforo(pctProteina,2,6),'Ideal: 2–5%')+
+      paramBox('% Agua libre',pctAgua,58,68,'%',semaforo(100-pctAgua,30,42),'Ideal: 58–68%')+
+    '</div>'+
+    (pctSolidos<30?'<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:.75rem;color:#991b1b;font-weight:700;margin-top:6px;">💡 Sólidos bajos: agrega maltodextrina o leche en polvo para llegar al 30%</div>':'')+
+    (pctSolidos>42?'<div style="background:#fee2e2;border-radius:8px;padding:6px 10px;font-size:.75rem;color:#991b1b;font-weight:700;margin-top:6px;">💡 Sólidos altos: reduce azúcares o leche en polvo para no superar el 40%</div>':'')+
+    (pctGrasa>12?'<div style="background:#fef3c7;border-radius:8px;padding:6px 10px;font-size:.75rem;color:#92400e;font-weight:700;margin-top:6px;">💡 Grasas altas: considera reducir crema o mantequilla</div>':'');
+}
+
+function paramBox(label,val,min,max,unit,color,tip){
+  return '<div style="background:'+color+'20;border:1.5px solid '+color+';border-radius:8px;padding:5px 8px;">'+
+    '<div style="font-size:.68rem;color:#6b7280;font-weight:700;">'+label+'</div>'+
+    '<div style="font-size:1rem;font-weight:900;color:#111827;">'+val.toFixed(1)+unit+'</div>'+
+    '<div style="font-size:.65rem;color:#9ca3af;">'+tip+'</div>'+
+  '</div>';
+}
+
+function agregarPasoRow(paso){
+  var wrap=document.getElementById('rec-pasos-editor');
+  var div=document.createElement('div');
+  div.className='paso-editor-row';
+  var num=wrap.children.length+1;
+  div.innerHTML=
+    '<div class="paso-num">'+num+'</div>'+
+    '<div class="field"><label>Descripción del paso</label><textarea class="paso-desc" rows="2" placeholder="Describe el paso...">'+(paso?paso.descripcion:'')+'</textarea></div>'+
+    '<div class="field small"><label>⏱ Tiempo (min)</label><input type="number" class="paso-tiempo" min="0" value="'+(paso?paso.tiempo:'')+'" placeholder="0"></div>'+
+    '<button class="btn btn-red" onclick="this.parentNode.remove();renumerarPasos();" style="margin-bottom:0;padding:8px 10px;flex-shrink:0;">🗑</button>';
+  wrap.appendChild(div);
+}
+
+function renumerarPasos(){
+  var rows=document.querySelectorAll('#rec-pasos-editor .paso-num');
+  rows.forEach(function(el,i){ el.textContent=i+1; });
+}
+
+async function guardarReceta(){
+  var nombre=document.getElementById('rec-nombre').value.trim();
+  var moldesBase=parseInt(document.getElementById('rec-moldes-base').value)||1;
+  var desc=document.getElementById('rec-desc').value.trim();
+  var editId=document.getElementById('rec-id').value;
+  if(!nombre){document.getElementById('rec-error').textContent='⚠️ Nombre requerido';return;}
+
+  // Collect ingredients
+  var ingRows=document.querySelectorAll('#rec-ings-editor .ing-editor-row');
+  var ings=[];
+  ingRows.forEach(function(row){
+    var sel=row.querySelector('.ing-sel');
+    var qty=parseFloat(row.querySelector('.ing-qty').value)||0;
+    if(sel.value && qty>0) ings.push({ingId:sel.value,cantidad:qty});
+  });
+  if(!ings.length){document.getElementById('rec-error').textContent='⚠️ Agrega al menos un ingrediente';return;}
+
+  // Collect steps
+  var pasoRows=document.querySelectorAll('#rec-pasos-editor .paso-editor-row');
+  var pasos=[];
+  pasoRows.forEach(function(row,i){
+    var desc2=row.querySelector('.paso-desc').value.trim();
+    var tiempo=parseInt(row.querySelector('.paso-tiempo').value)||0;
+    if(desc2) pasos.push({orden:i+1,descripcion:desc2,tiempo:tiempo});
+  });
+
+  var id=editId||'rec_'+Date.now();
+  try{
+    await db.ref('recetas/'+id).set({id:id,nombre:nombre,moldesBase:moldesBase,descripcion:desc,ingredientes:ings,pasos:pasos,updatedAt:Date.now()});
+    cerrarModal('modal-receta');
+    showToast('✅ Receta guardada');
+  }catch(e){document.getElementById('rec-error').textContent='❌ '+e.message;}
+}
+
+function verReceta(id){
+  var r=recetas.find(function(x){return x.id===id;});
+  if(!r) return;
+  document.getElementById('modal-ver-title').textContent='🍦 '+r.nombre;
+  var moldes=1;
+  var body=document.getElementById('modal-ver-body');
+  function render(m){
+    moldes=m;
+    var factor=m/(r.moldesBase||1);
+    var costo=calcularCostoReceta(r,m);
+    var html='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">'+
+      '<label style="font-size:.82rem;font-weight:700;color:var(--pk2);">Moldes a producir:</label>'+
+      '<input type="number" id="ver-moldes" min="1" value="'+m+'" style="width:70px;padding:6px 10px;border:2px solid var(--pk3);border-radius:10px;font-family:Nunito,sans-serif;font-weight:800;" oninput="document.getElementById(\'ver-pzas\').textContent=(parseInt(this.value)||1)*40">'+
+      '<span id="ver-pzas" style="font-size:.82rem;color:var(--tl);font-weight:800;">'+(m*40)+' pzas</span>'+
+      '<button class="btn btn-pk" onclick="renderVerReceta(\''+id+'\',parseInt(document.getElementById(\'ver-moldes\').value)||1)" style="padding:6px 12px;font-size:.78rem;">✅</button>'+
+    '</div>';
+    if(r.descripcion) html+='<div style="background:#f9fafb;border-radius:10px;padding:10px 12px;font-size:.84rem;color:#6b7280;margin-bottom:12px;">'+r.descripcion+'</div>';
+    // Ingredients
+    html+='<div style="font-family:\'Fredoka One\',cursive;color:var(--pk2);margin-bottom:8px;">🥛 Ingredientes ('+m+' molde'+(m>1?'s':'')+')</div>';
+    html+='<div style="margin-bottom:14px;">';
+    (r.ingredientes||[]).forEach(function(ri){
+      var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+      if(!ing) return;
+      var cant=(ri.cantidad*factor);
+      var cantStr=cant%1===0?cant.toString():cant.toFixed(2);
+      var costoIng=ing.precio?(cant*parseFloat(ing.precio)):0;
+      var mlVal=toMl(cant,ing.unidad);
+      var mlStr=mlVal!==null?fmtMl(mlVal):'';
+      var esAdmin2=currentUser&&window._currentUserRol==='admin';
+      html+='<div class="ing-row"><span class="ing-nombre">'+ing.nombre+'</span>'+
+        '<span class="ing-cant">'+cantStr+' '+ing.unidad+(mlStr?' <span style="font-size:.68rem;color:var(--tl);font-weight:700;">'+mlStr+'</span>':'')+'</span>'+
+        '<span class="ing-costo">'+(esAdmin2&&costoIng>0?'~$'+costoIng.toFixed(2):'')+'</span></div>';
+    });
+    html+='</div>';
+    if(costo>0){
+      html+='<div class="costo-box"><div><div style="font-size:.82rem;opacity:.8;">Costo estimado</div><div class="costo-val">$'+costo.toFixed(2)+'</div></div>'+
+        '<div style="text-align:right;"><div style="font-size:.82rem;opacity:.8;">Por paleta</div><div style="font-family:\'Fredoka One\',cursive;font-size:1.1rem;">$'+(costo/(m*40)).toFixed(2)+'</div></div></div>';
+    }
+    // Steps
+    if(r.pasos&&r.pasos.length){
+      html+='<div style="font-family:\'Fredoka One\',cursive;color:var(--pk2);margin-bottom:8px;">📋 Elaboración</div>';
+      var tiempoTotal=r.pasos.reduce(function(a,p){return a+(p.tiempo||0);},0);
+      if(tiempoTotal>0) html+='<div style="font-size:.78rem;color:var(--tl);font-weight:700;margin-bottom:8px;">⏱ Tiempo total estimado: '+tiempoTotal+' min</div>';
+      r.pasos.forEach(function(p){
+        html+='<div class="paso-row"><div class="paso-num">'+p.orden+'</div><div class="paso-text">'+p.descripcion+(p.tiempo?'<div class="paso-tiempo">⏱ '+p.tiempo+' min</div>':'')+'</div></div>';
+      });
+    }
+    body.innerHTML=html;
+  }
+  render(moldes);
+  document.getElementById('modal-ver-btns').innerHTML=
+    '<button class="btn btn-pk" onclick="generarPDFReceta(\''+id+'\',parseInt(document.getElementById(\'ver-moldes\').value)||1)">📄 PDF</button>'+
+    '<button class="btn btn-gray" onclick="editarReceta(\''+id+'\')">✏️ Editar</button>'+
+    '<button class="btn btn-red" onclick="eliminarReceta(\''+id+'\',\''+r.nombre+'\')">🗑</button>'+
+    '<button class="btn btn-gray" onclick="cerrarModal(\'modal-ver-receta\')">Cerrar</button>';
+  document.getElementById('modal-ver-receta').classList.add('open');
+}
+
+window.renderVerReceta = function(id, m){
+  var r=recetas.find(function(x){return x.id===id;});
+  if(!r) return;
+  var factor=m/(r.moldesBase||1);
+  var costo=calcularCostoReceta(r,m);
+  var pzasEl=document.getElementById('ver-pzas');
+  if(pzasEl) pzasEl.textContent=m*40+' pzas';
+  // Re-render ingredients
+  var ingList=document.querySelectorAll('#modal-ver-body .ing-row');
+  (r.ingredientes||[]).forEach(function(ri, idx){
+    var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+    if(!ing||!ingList[idx]) return;
+    var cant=(ri.cantidad*factor);
+    var cantStr=cant%1===0?cant.toString():cant.toFixed(2);
+    ingList[idx].querySelector('.ing-cant').textContent=cantStr+' '+ing.unidad;
+    var costoEl=ingList[idx].querySelector('.ing-costo');
+    if(costoEl) costoEl.textContent=ing.precio?'~$'+(cant*parseFloat(ing.precio)).toFixed(2):'';
+  });
+};
+
+function editarReceta(id){
+  var r=recetas.find(function(x){return x.id===id;});
+  if(!r) return;
+  cerrarModal('modal-ver-receta');
+  document.getElementById('modal-receta-title').textContent='✏️ Editar Receta';
+  document.getElementById('rec-nombre').value=r.nombre;
+  document.getElementById('rec-moldes-base').value=r.moldesBase||1;
+  document.getElementById('rec-desc').value=r.descripcion||'';
+  document.getElementById('rec-id').value=r.id;
+  document.getElementById('rec-error').textContent='';
+  // Load ingredients
+  document.getElementById('rec-ings-editor').innerHTML='';
+  (r.ingredientes||[]).forEach(function(ri){ agregarIngRow(ri); });
+  if(!(r.ingredientes&&r.ingredientes.length)) agregarIngRow();
+  // Load steps
+  document.getElementById('rec-pasos-editor').innerHTML='';
+  (r.pasos||[]).forEach(function(p){ agregarPasoRow(p); });
+  if(!(r.pasos&&r.pasos.length)) agregarPasoRow();
+  document.getElementById('modal-receta').classList.add('open');
+}
+
+function eliminarReceta(id,nombre){
+  if(!confirm('¿Eliminar receta "'+nombre+'"?')) return;
+  cerrarModal('modal-ver-receta');
+  db.ref('recetas/'+id).remove().then(function(){ showToast('🗑 Receta eliminada'); });
+}
+
+// ===== CONSULTAR =====
+function renderConsultaSelector(){
+  var sel=document.getElementById('cons-receta');
+  if(!sel) return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">— Selecciona una receta —</option>'+
+    recetas.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');})
+    .map(function(r){return '<option value="'+r.id+'" '+(r.id===cur?'selected':'')+'>'+r.nombre+'</option>';}).join('');
+}
+
+function renderConsulta(){
+  var id=document.getElementById('cons-receta').value;
+  var moldes=parseInt(document.getElementById('cons-moldes').value)||1;
+  var wrap=document.getElementById('consulta-resultado');
+  if(!id){wrap.innerHTML='';return;}
+  var r=recetas.find(function(x){return x.id===id;});
+  if(!r){wrap.innerHTML='';return;}
+  var factor=moldes/(r.moldesBase||1);
+  var costo=calcularCostoReceta(r,moldes);
+  var html='<div class="consulta-result">';
+  html+='<div class="consulta-title">🍦 '+r.nombre+' — '+moldes+' molde'+(moldes>1?'s':'')+' ('+moldes*40+' pzas)</div>';
+  if(r.descripcion) html+='<div style="font-size:.83rem;color:#6b7280;margin-bottom:12px;">'+r.descripcion+'</div>';
+  html+='<div style="font-family:\'Fredoka One\',cursive;color:var(--pk2);margin-bottom:6px;font-size:.95rem;">🥛 Ingredientes</div>';
+  (r.ingredientes||[]).forEach(function(ri){
+    var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+    if(!ing) return;
+    var cant=(ri.cantidad*factor);
+    var cantStr=cant%1===0?cant.toString():cant.toFixed(2);
+    html+='<div class="compra-row"><span class="compra-nombre">'+ing.nombre+'</span><span class="compra-cant">'+cantStr+' '+ing.unidad+'</span></div>';
+  });
+  if(costo>0){
+    html+='<div class="costo-box" style="margin-top:10px;"><div><div style="font-size:.82rem;opacity:.8;">Costo total estimado</div><div class="costo-val">$'+costo.toFixed(2)+'</div></div>'+
+      '<div style="text-align:right;"><div style="font-size:.82rem;opacity:.8;">Por paleta</div><div style="font-family:\'Fredoka One\',cursive;font-size:1.2rem;">$'+(costo/(moldes*40)).toFixed(2)+'</div></div></div>';
+  }
+  if(r.pasos&&r.pasos.length){
+    html+='<div style="font-family:\'Fredoka One\',cursive;color:var(--pk2);margin:12px 0 6px;font-size:.95rem;">📋 Pasos</div>';
+    r.pasos.forEach(function(p){
+      html+='<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(219,39,119,.1);">'+
+        '<div style="width:24px;height:24px;border-radius:50%;background:var(--pk);color:white;font-family:\'Fredoka One\',cursive;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+p.orden+'</div>'+
+        '<div style="font-size:.84rem;flex:1;">'+p.descripcion+(p.tiempo?'<div style="font-size:.75rem;color:var(--tl);font-weight:700;margin-top:2px;">⏱ '+p.tiempo+' min</div>':'')+'</div>'+
+      '</div>';
+    });
+  }
+  html+='<button class="btn btn-pk" onclick="generarPDFReceta(\''+r.id+'\','+moldes+')" style="width:100%;margin-top:12px;">📄 Descargar PDF</button>';
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+// ===== LISTA DE COMPRAS =====
+function renderComprasSelector(){
+  var wrap=document.getElementById('compras-selector');
+  if(!wrap) return;
+  if(!recetas.length){wrap.innerHTML='<div class="empty"><p>No hay recetas aún</p></div>';return;}
+  wrap.innerHTML=recetas.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');}).map(function(r){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f9fafb;">'+
+      '<input type="checkbox" class="comp-check" data-id="'+r.id+'" style="width:18px;height:18px;accent-color:var(--pk);">'+
+      '<label style="flex:1;font-weight:700;font-size:.88rem;cursor:pointer;">'+r.nombre+'</label>'+
+      '<input type="number" class="comp-moldes" data-id="'+r.id+'" min="1" value="1" style="width:60px;padding:5px 8px;border:2px solid var(--pk3);border-radius:10px;font-family:Nunito,sans-serif;font-weight:700;">'+
+      '<span style="font-size:.75rem;color:#9ca3af;">moldes</span>'+
+    '</div>';
+  }).join('');
+}
+
+function generarListaCompras(){
+  var checks=document.querySelectorAll('.comp-check:checked');
+  if(!checks.length){showToast('⚠️ Selecciona al menos una receta','#f59e0b');return;}
+  var consolidado={};
+  checks.forEach(function(chk){
+    var id=chk.getAttribute('data-id');
+    var moldes=parseInt(document.querySelector('.comp-moldes[data-id="'+id+'"]').value)||1;
+    var r=recetas.find(function(x){return x.id===id;});
+    if(!r) return;
+    var factor=moldes/(r.moldesBase||1);
+    (r.ingredientes||[]).forEach(function(ri){
+      var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+      if(!ing) return;
+      var key=ri.ingId;
+      if(!consolidado[key]) consolidado[key]={nombre:ing.nombre,unidad:ing.unidad,cantidad:0,costo:0,precio:ing.precio||0};
+      consolidado[key].cantidad+=ri.cantidad*factor;
+      consolidado[key].costo+=(ri.cantidad*factor)*(ing.precio||0);
+    });
+  });
+  var items=Object.values(consolidado).sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');});
+  var costoTotal=items.reduce(function(a,i){return a+i.costo;},0);
+  var html='<div class="card" style="margin-top:12px;"><div class="card-title">🛒 Lista de Compras</div>';
+  items.forEach(function(item){
+    var cant=item.cantidad%1===0?item.cantidad.toString():item.cantidad.toFixed(2);
+    html+='<div class="compra-row">'+
+      '<div><div class="compra-nombre">'+item.nombre+'</div>'+(item.costo>0?'<div style="font-size:.72rem;color:#9ca3af;">~$'+item.costo.toFixed(2)+'</div>':'')+'</div>'+
+      '<span class="compra-cant">'+cant+' '+item.unidad+'</span>'+
+    '</div>';
+  });
+  if(costoTotal>0){
+    html+='<div style="background:linear-gradient(90deg,var(--pk),var(--tl));color:white;border-radius:12px;padding:12px 14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">'+
+      '<span style="font-weight:700;">Costo total estimado</span>'+
+      '<span style="font-family:\'Fredoka One\',cursive;font-size:1.3rem;">$'+costoTotal.toFixed(2)+'</span>'+
+    '</div>';
+  }
+  html+='<button class="btn btn-pk" onclick="generarPDFCompras()" style="width:100%;margin-top:12px;">📄 Descargar PDF</button>';
+  html+='</div>';
+  document.getElementById('lista-compras-resultado').innerHTML=html;
+  window._listaCompras={items:items,costoTotal:costoTotal};
+}
+
+// ===== PDF RECETA =====
+function generarPDFReceta(id, moldes){
+  var r=recetas.find(function(x){return x.id===id;});
+  if(!r) return;
+  var {jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var W=210, factor=moldes/(r.moldesBase||1);
+  doc.setFillColor(219,39,119); doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  doc.text('CIUDAD PALETA',14,11);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Recetario de Producción',14,17);
+  doc.text(new Date().toLocaleDateString('es-MX'),14,23);
+  doc.setTextColor(131,24,67); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.setFillColor(252,231,243); doc.rect(0,26,W,14,'F');
+  doc.text(r.nombre,14,35);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text(moldes+' molde'+(moldes>1?'s':'')+' · '+(moldes*40)+' paletas',14,41);
+  var y=50;
+  if(r.descripcion){
+    doc.setFontSize(8.5); doc.setTextColor(107,114,128);
+    var lines=doc.splitTextToSize(r.descripcion, W-28);
+    doc.text(lines,14,y); y+=lines.length*5+6;
+  }
+  // Ingredients table
+  var ingData=(r.ingredientes||[]).map(function(ri){
+    var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+    if(!ing) return null;
+    var cant=(ri.cantidad*factor);
+    var cantStr=cant%1===0?cant.toString():cant.toFixed(2);
+    var costoIng=ing.precio?(cant*parseFloat(ing.precio)):0;
+    return [ing.nombre, cantStr+' '+ing.unidad, costoIng>0?'$'+costoIng.toFixed(2):'-'];
+  }).filter(Boolean);
+  doc.autoTable({startY:y,head:[['Ingrediente','Cantidad','Costo aprox.']],body:ingData,theme:'grid',
+    headStyles:{fillColor:[219,39,119],textColor:255,fontSize:9,fontStyle:'bold'},
+    bodyStyles:{fontSize:8.5},columnStyles:{0:{cellWidth:100},1:{cellWidth:50},2:{halign:'right',cellWidth:40}},
+    margin:{left:14,right:14}});
+  y=doc.lastAutoTable.finalY+8;
+  var costo=calcularCostoReceta(r,moldes);
+  if(costo>0){
+    doc.setFillColor(13,148,136); doc.roundedRect(110,y,W-124,16,2,2,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('Costo estimado: $'+costo.toFixed(2)+' · Por paleta: $'+(costo/(moldes*40)).toFixed(2),114,y+10);
+    y+=22;
+  }
+  if(r.pasos&&r.pasos.length){
+    var tiempoTotal=r.pasos.reduce(function(a,p){return a+(p.tiempo||0);},0);
+    doc.setTextColor(131,24,67); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text('Pasos de elaboración'+(tiempoTotal>0?' ('+tiempoTotal+' min total)':''),14,y); y+=7;
+    var pasoData=r.pasos.map(function(p){return [p.orden.toString(), p.descripcion, p.tiempo?p.tiempo+' min':'-'];});
+    doc.autoTable({startY:y,head:[['#','Paso','Tiempo']],body:pasoData,theme:'striped',
+      headStyles:{fillColor:[13,148,136],textColor:255,fontSize:9},bodyStyles:{fontSize:8.5},
+      columnStyles:{0:{cellWidth:12,halign:'center'},1:{cellWidth:145},2:{cellWidth:20,halign:'center'}},
+      margin:{left:14,right:14}});
+  }
+  doc.setFillColor(219,39,119); doc.rect(0,285,W,12,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  doc.text('Ciudad Paleta Helados Gourmet · Recetario interno',W/2,292,{align:'center'});
+  doc.save('Receta_'+r.nombre.replace(/\s+/g,'_')+'.pdf');
+  showToast('📄 PDF generado');
+}
+
+// ===== PDF LISTA COMPRAS =====
+function generarPDFCompras(){
+  if(!window._listaCompras) return;
+  var {items,costoTotal}=window._listaCompras;
+  var {jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'}); var W=210;
+  doc.setFillColor(219,39,119); doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  doc.text('CIUDAD PALETA',14,11);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Lista de Compras · '+new Date().toLocaleDateString('es-MX'),14,17);
+  var tableData=items.map(function(i){
+    var cant=i.cantidad%1===0?i.cantidad.toString():i.cantidad.toFixed(2);
+    return [i.nombre, cant+' '+i.unidad, i.costo>0?'$'+i.costo.toFixed(2):'-'];
+  });
+  doc.autoTable({startY:30,head:[['Ingrediente','Cantidad','Costo aprox.']],body:tableData,theme:'grid',
+    headStyles:{fillColor:[219,39,119],textColor:255,fontSize:9,fontStyle:'bold'},
+    bodyStyles:{fontSize:8.5},columnStyles:{0:{cellWidth:110},1:{cellWidth:50},2:{halign:'right',cellWidth:30}},
+    margin:{left:14,right:14}});
+  if(costoTotal>0){
+    var fy=doc.lastAutoTable.finalY+6;
+    doc.setFillColor(13,148,136); doc.roundedRect(110,fy,W-124,14,2,2,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('Costo total estimado: $'+costoTotal.toFixed(2),114,fy+9);
+  }
+  doc.setFillColor(219,39,119); doc.rect(0,285,W,12,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  doc.text('Ciudad Paleta Helados Gourmet',W/2,292,{align:'center'});
+  doc.save('Lista_Compras_'+new Date().toISOString().slice(0,10)+'.pdf');
+  showToast('📄 Lista de compras descargada');
+}
+
+// ===== MATERIA PRIMA =====
+var materiaInv = {}; // {ingId: {cantidad, minimo}}
+var produccionActiva = null;
+
+db.ref('materia_prima_inv').on('value', function(snap){
+  materiaInv = snap.val()||{};
+  renderMateria();
+  renderProducciones();
+});
+
+db.ref('bitacora_recetas').on('value', function(snap){
+  var data = snap.val()||{};
+  window._bitacoraRec = Object.values(data).sort(function(a,b){return b.ts-a.ts;});
+  renderBitacoraRecetas();
+});
+
+db.ref('producciones').on('value', function(snap){
+  var data = snap.val()||{};
+  window._producciones = Object.values(data).sort(function(a,b){return b.ts-a.ts;});
+  renderProducciones();
+});
+
+function abrirMovMateria(){
+  var sel = document.getElementById('mat-ing-sel');
+  sel.innerHTML = '<option value="">— Ingrediente —</option>'+
+    ingredientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');}).map(function(i){
+      var inv = materiaInv[i.id]||{cantidad:0};
+      return '<option value="'+i.id+'">'+i.nombre+' (stock: '+inv.cantidad+' '+i.unidad+')</option>';
+    }).join('');
+  document.getElementById('mat-cantidad').value='';
+  document.getElementById('mat-minimo').value='';
+  document.getElementById('mat-motivo').value='';
+  document.getElementById('mat-accion').value='agregar';
+  document.getElementById('mat-error').textContent='';
+  document.getElementById('modal-mat-title').textContent='📦 Movimiento de Stock';
+  document.getElementById('modal-materia').classList.add('open');
+}
+
+async function guardarMovMateria(){
+  var ingId = document.getElementById('mat-ing-sel').value;
+  var accion = document.getElementById('mat-accion').value;
+  var cantidad = parseFloat(document.getElementById('mat-cantidad').value)||0;
+  var minimo = parseFloat(document.getElementById('mat-minimo').value)||0;
+  var motivo = document.getElementById('mat-motivo').value.trim();
+  var errEl = document.getElementById('mat-error');
+  if(!ingId){errEl.textContent='⚠️ Selecciona un ingrediente';return;}
+  if(cantidad<=0){errEl.textContent='⚠️ Cantidad inválida';return;}
+  var ing = ingredientes.find(function(i){return i.id===ingId;});
+  var inv = materiaInv[ingId]||{cantidad:0,minimo:0};
+  var antes = inv.cantidad;
+  if(accion==='agregar') inv.cantidad = antes+cantidad;
+  else if(accion==='quitar') inv.cantidad = Math.max(0,antes-cantidad);
+  else inv.cantidad = cantidad; // ajuste
+  if(minimo>0) inv.minimo=minimo;
+  try{
+    await db.ref('materia_prima_inv/'+ingId).set(inv);
+    await logRecetas('Inventario materia prima', (accion==='agregar'?'➕ ':accion==='quitar'?'➖ ':'📌 ')+ing.nombre+': '+antes+' → '+inv.cantidad+' '+ing.unidad+(motivo?' ('+motivo+')':''));
+    cerrarModal('modal-materia');
+    showToast('✅ Inventario actualizado');
+  }catch(e){
+    errEl.textContent='❌ '+e.message;
+    console.error('guardarMovMateria error:',e);
+  }
+}
+
+function renderMateria(){
+  var list = document.getElementById('materia-list');
+  if(!list) return;
+  var q = (document.getElementById('search-materia')?document.getElementById('search-materia').value:'').toLowerCase();
+  var filter = document.getElementById('mat-filter')?document.getElementById('mat-filter').value:'';
+  var sort = document.getElementById('mat-sort')?document.getElementById('mat-sort').value:'alfa';
+  var items = ingredientes.filter(function(i){
+    return i.nombre.toLowerCase().includes(q);
+  }).map(function(i){
+    var inv = materiaInv[i.id]||{cantidad:0,minimo:0};
+    var st = inv.cantidad===0?'out':inv.cantidad<=(inv.minimo||0)?'bajo':'ok';
+    return Object.assign({},i,{inv:inv,st:st});
+  });
+  if(filter) items=items.filter(function(i){return i.st===filter;});
+  if(sort==='alfa') items.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');});
+  else if(sort==='stock-asc') items.sort(function(a,b){return a.inv.cantidad-b.inv.cantidad;});
+  else items.sort(function(a,b){return b.inv.cantidad-a.inv.cantidad;});
+  // Stats
+  var all = ingredientes.map(function(i){var inv=materiaInv[i.id]||{cantidad:0,minimo:0};return inv.cantidad===0?'out':inv.cantidad<=(inv.minimo||0)?'bajo':'ok';});
+  var okEl=document.getElementById('mat-ok'),bajEl=document.getElementById('mat-bajo'),outEl=document.getElementById('mat-out');
+  if(okEl) okEl.textContent=all.filter(function(s){return s==='ok';}).length;
+  if(bajEl) bajEl.textContent=all.filter(function(s){return s==='bajo';}).length;
+  if(outEl) outEl.textContent=all.filter(function(s){return s==='out';}).length;
+  if(!items.length){list.innerHTML='<div class="empty"><div class="ico">📦</div><p>Sin ingredientes en inventario</p></div>';return;}
+  var BADGE={'ok':'<span style="background:#d1fae5;color:#065f46;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:800;">✅ En stock</span>',
+    'bajo':'<span style="background:#fef3c7;color:#92400e;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:800;">⚠️ Stock bajo</span>',
+    'out':'<span style="background:#fee2e2;color:#991b1b;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:800;">❌ Sin stock</span>'};
+  var CAT2={'lacteo':'🥛','chocolate':'🍫','fruta':'🍓','dulce':'🍬','base':'🧪','azucar':'🍚','decoracion':'🎨','otro':'📦'};
+  list.innerHTML = '<div class="card" style="padding:8px;">'+items.map(function(item){
+    var esAdmin3=window._currentUserRol==='admin';
+    return '<div class="item-row">'+
+      '<div style="flex:1;">'+
+        '<div class="item-name">'+(CAT2[item.categoria]||'📦')+' '+item.nombre+'</div>'+
+        '<div class="item-sub">Stock: <strong>'+item.inv.cantidad+'</strong> '+item.unidad+
+          (item.inv.minimo?' · Mín: '+item.inv.minimo:'')+' '+BADGE[item.st]+'</div>'+
+      '</div>'+
+      (esAdmin3?'<button class="btn btn-gray" style="padding:6px 10px;" data-id="'+item.id+'" onclick="editarStockMateria(this.dataset.id)">✏️</button>':'')+
+    '</div>';
+  }).join('')+'</div>';
+}
+
+function editarStockMateria(ingId){
+  var sel=document.getElementById('mat-ing-sel');
+  sel.innerHTML='<option value="'+ingId+'">'+( ingredientes.find(function(i){return i.id===ingId;})||{nombre:'?'}).nombre+'</option>';
+  var inv=materiaInv[ingId]||{cantidad:0,minimo:0};
+  document.getElementById('mat-cantidad').value=inv.cantidad;
+  document.getElementById('mat-minimo').value=inv.minimo||'';
+  document.getElementById('mat-accion').value='ajuste';
+  document.getElementById('mat-motivo').value='Ajuste manual';
+  document.getElementById('mat-error').textContent='';
+  document.getElementById('modal-materia').classList.add('open');
+}
+
+function generarPDFMateria(){
+  var {jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'}); var W=210;
+  doc.setFillColor(219,39,119); doc.rect(0,0,W,26,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  doc.text('CIUDAD PALETA',14,11);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Inventario Materia Prima · '+new Date().toLocaleDateString('es-MX'),14,18);
+  var items=ingredientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');}).map(function(i){
+    var inv=materiaInv[i.id]||{cantidad:0,minimo:0};
+    var st=inv.cantidad===0?'Sin stock':inv.cantidad<=(inv.minimo||0)?'Stock bajo':'En stock';
+    return [i.nombre, inv.cantidad.toString()+' '+i.unidad, (inv.minimo||0).toString()+' '+i.unidad, st];
+  });
+  doc.autoTable({startY:30,head:[['Ingrediente','Stock actual','Stock mínimo','Status']],body:items,theme:'grid',
+    headStyles:{fillColor:[219,39,119],textColor:255,fontSize:9,fontStyle:'bold'},
+    bodyStyles:{fontSize:8.5},
+    columnStyles:{0:{cellWidth:90},1:{cellWidth:35},2:{cellWidth:35},3:{cellWidth:30,fontStyle:'bold'}},
+    didParseCell:function(d){ if(d.column.index===3&&d.section==='body'){
+      if(d.cell.raw==='Sin stock') d.cell.styles.textColor=[185,28,28];
+      else if(d.cell.raw==='Stock bajo') d.cell.styles.textColor=[146,64,14];
+      else d.cell.styles.textColor=[6,78,59];
+    }},margin:{left:14,right:14}});
+  doc.setFillColor(219,39,119); doc.rect(0,285,W,12,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(7);
+  doc.text('Ciudad Paleta Helados Gourmet · Inventario Materia Prima',W/2,292,{align:'center'});
+  doc.save('MateriaPrima_'+new Date().toISOString().slice(0,10)+'.pdf');
+  showToast('📄 PDF generado');
+}
+
+// ===== PRODUCCION =====
+function renderProducciones(){
+  // Populate selector
+  var sel=document.getElementById('prod-receta-sel');
+  if(sel){
+    sel.innerHTML='<option value="">— Selecciona receta —</option>'+
+      recetas.sort(function(a,b){return a.nombre.localeCompare(b.nombre,'es');}).map(function(r){
+        return '<option value="'+r.id+'">'+r.nombre+'</option>';
+      }).join('');
+  }
+  var activas=document.getElementById('producciones-activas');
+  var hist=document.getElementById('producciones-historial');
+  if(!window._producciones) return;
+  var prods=window._producciones;
+  var enProceso=prods.filter(function(p){return p.status==='en_proceso';});
+  var terminadas=prods.filter(function(p){return p.status!=='en_proceso';}).slice(0,20);
+  if(activas){
+    activas.innerHTML=enProceso.length?enProceso.map(function(p){
+      return '<div style="background:#fef3c7;border-left:4px solid var(--yw);border-radius:10px;padding:12px;margin-bottom:8px;">'+
+        '<div style="font-weight:800;font-size:.88rem;">⚗️ '+p.recetaNombre+'</div>'+
+        '<div style="font-size:.78rem;color:#6b7280;">'+p.moldes+' molde'+(p.moldes>1?'s':'')+' · '+p.usuario+' · '+new Date(p.ts).toLocaleString('es-MX')+'</div>'+
+        '<div style="display:flex;gap:6px;margin-top:8px;">'+
+          '<button class="btn btn-gr" data-id="abrirChecklist(this.dataset.id)" data-id="'+p.id+'" onclick="this.dataset.id&&abrirChecklist(this.dataset.id)">📋 Ver checklist</button>'+
+          '<button class="btn btn-red" data-id="cancelarProdId(this.dataset.id)" data-id="'+p.id+'" onclick="this.dataset.id&&cancelarProdId(this.dataset.id)">❌ Cancelar</button>'+
+        '</div>'+
+      '</div>';
+    }).join(''):'<div class="empty"><p>Sin producciones activas</p></div>';
+  }
+  if(hist){
+    hist.innerHTML=terminadas.length?terminadas.map(function(p){
+      var icon=p.status==='terminada'?'✅':'❌';
+      var mermaStr='';
+      if(p.pzasReales!==undefined){
+        var pctM=p.pctMerma||0;
+        mermaStr=' · '+p.pzasReales+'/'+p.pzasEsperadas+' pzas'+(pctM>0?' · <span style="color:#dc2626;font-weight:800;">Merma: '+pctM+'%</span>':'<span style="color:#16a34a;font-weight:800;"> ✓ Sin merma</span>');
+      }
+      return '<div style="padding:8px 0;border-bottom:1px solid #f9fafb;font-size:.83rem;">'+
+        '<div style="display:flex;justify-content:space-between;"><div style="font-weight:700;">'+icon+' '+p.recetaNombre+'</div>'+
+        '<div style="color:#9ca3af;font-size:.75rem;">'+new Date(p.ts).toLocaleDateString('es-MX')+'</div></div>'+
+        '<div style="color:#6b7280;">'+p.moldes+' moldes · '+p.usuario+mermaStr+'</div>'+
+      '</div>';
+    }).join(''):'<div class="empty"><p>Sin historial</p></div>';
+  }
+}
+
+async function iniciarProduccion(){
+  var recId=document.getElementById('prod-receta-sel').value;
+  var moldes=parseInt(document.getElementById('prod-moldes').value)||1;
+  if(!recId){showToast('⚠️ Selecciona una receta','#f59e0b');return;}
+  var r=recetas.find(function(x){return x.id===recId;});
+  if(!r) return;
+  // Check stock
+  var factor=moldes/(r.moldesBase||1);
+  var faltantes=[];
+  (r.ingredientes||[]).forEach(function(ri){
+    var inv=materiaInv[ri.ingId]||{cantidad:0};
+    var necesario=ri.cantidad*factor;
+    if(inv.cantidad<necesario){
+      var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+      faltantes.push((ing?ing.nombre:'?')+': necesitas '+necesario.toFixed(2)+', tienes '+inv.cantidad);
+    }
+  });
+  if(faltantes.length){
+    if(!confirm('⚠️ Stock insuficiente: ' + faltantes.join(' | ') + '. ¿Continuar de todas formas?')) return;
+  }
+  var id='prod_'+Date.now();
+  var prod={id:id,recetaId:recId,recetaNombre:r.nombre,moldes:moldes,factor:factor,
+    usuario:window._currentUserNombre||'Usuario',status:'en_proceso',ts:Date.now()};
+  try{
+    await db.ref('producciones/'+id).set(prod);
+    logRecetas('Producción iniciada', r.nombre+' · '+moldes+' moldes');
+    produccionActiva=prod;
+    // Open checklist directly with prod object (don't wait for Firebase update)
+    abrirChecklistDirecto(prod);
+    showToast('⚗️ Producción iniciada');
+  }catch(e){
+    showToast('❌ Error: '+e.message,'#dc2626');
+    console.error('iniciarProduccion error:',e);
+  }
+}
+
+function abrirChecklist(prodId){
+  var prod=window._producciones&&window._producciones.find(function(p){return p.id===prodId;});
+  if(!prod){
+    // Try produccionActiva as fallback
+    if(produccionActiva&&produccionActiva.id===prodId) prod=produccionActiva;
+    else{ showToast('⚠️ Producción no encontrada','#f59e0b'); return; }
+  }
+  abrirChecklistDirecto(prod);
+}
+
+function abrirChecklistDirecto(prod){
+  produccionActiva=prod;
+  var r=recetas.find(function(x){return x.id===prod.recetaId;});
+  if(!r) return;
+  var factor=prod.factor||prod.moldes/(r.moldesBase||1);
+  document.getElementById('checklist-title').textContent='⚗️ '+r.nombre;
+  document.getElementById('checklist-info').innerHTML=
+    '👤 <strong>'+prod.usuario+'</strong> · '+prod.moldes+' molde'+(prod.moldes>1?'s':'')+
+    ' ('+prod.moldes*40+' paletas) · Iniciado: '+new Date(prod.ts).toLocaleString('es-MX');
+  // Ingredients checklist
+  var ingsEl=document.getElementById('checklist-ings');
+  var totalMl=0;
+  ingsEl.innerHTML=(r.ingredientes||[]).map(function(ri,idx){
+    var ing=ingredientes.find(function(i){return i.id===ri.ingId;});
+    if(!ing) return '';
+    var cant=(ri.cantidad*factor);
+    var cantStr=cant%1===0?cant.toString():cant.toFixed(2);
+    var ml=toMl(cant,ing.unidad);
+    if(ml!==null) totalMl+=ml;
+    var mlStr=ml!==null?'<span style="color:var(--tl);font-size:.72rem;font-weight:700;margin-left:4px;">'+fmtMl(ml)+'</span>':'';
+    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;margin-bottom:6px;background:#f9fafb;transition:background .2s;" '+
+      'onchange="toggleCheckBg(this)" >'+
+      '<input type="checkbox" style="width:20px;height:20px;accent-color:var(--gr);flex-shrink:0;">'+
+      '<div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">'+ing.nombre+'</div>'+
+      '<div style="font-size:.8rem;color:var(--tl);font-weight:800;">'+cantStr+' '+ing.unidad+mlStr+'</div></div>'+
+    '</label>';
+  }).join('');
+  // Total ml
+  if(totalMl>0){
+    document.getElementById('checklist-ml').innerHTML=
+      '<div style="background:#e0f2fe;border-radius:10px;padding:8px 12px;font-size:.83rem;font-weight:700;color:#075985;">'+
+      '💧 Total líquidos/base: '+fmtMl(totalMl)+'</div>';
+  }
+  // Steps checklist
+  var pasosEl=document.getElementById('checklist-pasos');
+  pasosEl.innerHTML=(r.pasos||[]).map(function(p){
+    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:12px;cursor:pointer;margin-bottom:6px;background:#f9fafb;transition:background .2s;" '+
+      'onchange="toggleCheckBg(this)" >'+
+      '<input type="checkbox" style="width:20px;height:20px;accent-color:var(--gr);flex-shrink:0;margin-top:2px;">'+
+      '<div style="flex:1;"><div class="paso-num" style="display:inline-flex;margin-right:6px;">'+p.orden+'</div>'+
+      '<span style="font-size:.86rem;">'+p.descripcion+'</span>'+
+      (p.tiempo?'<div style="font-size:.75rem;color:var(--tl);font-weight:700;margin-top:3px;">⏱ '+p.tiempo+' min</div>':'')+
+      '</div></label>';
+  }).join('');
+  document.getElementById('modal-checklist').classList.add('open');
+}
+
+async function terminarProduccion(){
+  if(!produccionActiva) return;
+  // Ask for real yield
+  var esperadas=produccionActiva.moldes*40;
+  var realInput=prompt('✅ Producción terminada\n\nPaletas esperadas: '+esperadas+'\n¿Cuántas paletas salieron realmente?',''+esperadas);
+  if(realInput===null) return; // user cancelled
+  var pzasReal=parseInt(realInput)||esperadas;
+  var merma=esperadas-pzasReal;
+  var pctMerma=((merma/esperadas)*100).toFixed(1);
+  var r=recetas.find(function(x){return x.id===produccionActiva.recetaId;});
+  var factor=produccionActiva.factor||1;
+  var updates={};
+  (r&&r.ingredientes||[]).forEach(function(ri){
+    var inv=materiaInv[ri.ingId]||{cantidad:0,minimo:0};
+    var nuevaCant=Math.max(0,inv.cantidad-(ri.cantidad*factor));
+    updates['materia_prima_inv/'+ri.ingId]={cantidad:nuevaCant,minimo:inv.minimo||0};
+  });
+  updates['producciones/'+produccionActiva.id+'/status']='terminada';
+  updates['producciones/'+produccionActiva.id+'/terminadaTs']=Date.now();
+  updates['producciones/'+produccionActiva.id+'/pzasEsperadas']=esperadas;
+  updates['producciones/'+produccionActiva.id+'/pzasReales']=pzasReal;
+  updates['producciones/'+produccionActiva.id+'/merma']=merma;
+  updates['producciones/'+produccionActiva.id+'/pctMerma']=parseFloat(pctMerma);
+  await db.ref().update(updates);
+  logRecetas('Producción terminada',
+    produccionActiva.recetaNombre+' · '+produccionActiva.moldes+' moldes · '+
+    pzasReal+'/'+esperadas+' pzas reales'+(merma>0?' · Merma: '+merma+' pzas ('+pctMerma+'%)':''));
+  produccionActiva=null;
+  cerrarModal('modal-checklist');
+  var msg='✅ Producción terminada — inventario actualizado\n'+pzasReal+' paletas reales';
+  if(merma>0) msg+=' · Merma: '+merma+' ('+pctMerma+'%)';
+  showToast(msg);
+}
+
+async function cancelarProduccion(){
+  if(!produccionActiva) return;
+  await db.ref('producciones/'+produccionActiva.id+'/status').set('cancelada');
+  logRecetas('Producción cancelada', produccionActiva.recetaNombre);
+  produccionActiva=null;
+  cerrarModal('modal-checklist');
+  showToast('❌ Producción cancelada — inventario sin cambios');
+}
+
+async function cancelarProdId(id){
+  if(!confirm('¿Cancelar esta producción? No se descontará del inventario.')) return;
+  await db.ref('producciones/'+id+'/status').set('cancelada');
+  logRecetas('Producción cancelada','Cancelada desde lista activas');
+  showToast('❌ Producción cancelada');
+}
+
+// ===== BITACORA RECETAS =====
+async function logRecetas(accion, detalle){
+  if(!currentUser) return;
+  var entry={ts:Date.now(),usuario:window._currentUserNombre||'Usuario',accion:accion,detalle:detalle};
+  await db.ref('bitacora_recetas/'+entry.ts).set(entry);
+}
+
+function renderBitacoraRecetas(){
+  var list=document.getElementById('bitacora-recetas-list');
+  if(!list||!window._bitacoraRec) return;
+  var ini=document.getElementById('bit-ini')?document.getElementById('bit-ini').value:'';
+  var fin=document.getElementById('bit-fin')?document.getElementById('bit-fin').value:'';
+  var q=(document.getElementById('search-bit')?document.getElementById('search-bit').value:'').toLowerCase();
+  var filtered=window._bitacoraRec.slice();
+  if(ini) filtered=filtered.filter(function(b){return new Date(b.ts)>=new Date(ini+'T00:00:00');});
+  if(fin) filtered=filtered.filter(function(b){return new Date(b.ts)<=new Date(fin+'T23:59:59');});
+  if(q) filtered=filtered.filter(function(b){return (b.accion+b.detalle+b.usuario).toLowerCase().includes(q);});
+  if(!filtered.length){list.innerHTML='<div class="empty"><p>Sin registros</p></div>';return;}
+  list.innerHTML=filtered.map(function(b){
+    return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f9fafb;font-size:.83rem;">'+
+      '<div style="flex:1;">'+
+        '<div style="font-weight:700;color:var(--pk2);">'+b.usuario+'</div>'+
+        '<div style="font-weight:600;color:var(--text);">'+b.accion+'</div>'+
+        '<div style="color:#6b7280;">'+b.detalle+'</div>'+
+      '</div>'+
+      '<div style="font-size:.72rem;color:#9ca3af;text-align:right;min-width:90px;">'+new Date(b.ts).toLocaleString('es-MX')+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+// Also log when saving/editing recipes and ingredients
+var _origGuardarReceta = guardarReceta;
+guardarReceta = async function(){
+  var editId=document.getElementById('rec-id').value;
+  var nombre=document.getElementById('rec-nombre').value.trim();
+  await _origGuardarReceta();
+  logRecetas(editId?'Receta editada':'Receta creada', nombre);
+};
+
+var _origGuardarIng = guardarIng;
+guardarIng = async function(){
+  var nombre=document.getElementById('ing-nombre').value.trim();
+  var editId=document.getElementById('ing-id').value;
+  await _origGuardarIng();
+  logRecetas(editId?'Ingrediente editado':'Ingrediente creado', nombre);
+};
+
+// Update showTab
+var _origShowTab = showTab;
+showTab = function(id, btn){
+  _origShowTab(id, btn);
+  if(id==='materia') renderMateria();
+  if(id==='produccion') renderProducciones();
+  if(id==='bitacora') renderBitacoraRecetas();
+};
+
+// ===== HELPERS =====
+function toggleCheckBg(el){ el.style.background=el.querySelector('input').checked?'#d1fae5':'#f9fafb'; }
+
+function confirmCancelar(modalId){
+  if(confirm('¿Cerrar sin guardar? Se perderán los cambios.')) cerrarModal(modalId);
+}
+
+function confirmTerminar(fn){
+  if(confirm('¿Marcar producción como terminada? Se descontará del inventario de materia prima.')) fn();
+}
+
+function confirmCancelarProduccion(){
+  if(confirm('¿Cancelar producción? No se descontará nada del inventario.')) cancelarProduccion();
+}
+
+function confirmCancelarProd(id){
+  if(confirm('¿Cancelar esta producción? No se descontará nada del inventario.')) cancelarProdId(id);
+}
+function cerrarModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+// NO click outside to close — all modals require explicit button action
+function showToast(msg,bg){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.style.background=bg||'#111827';
+  el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2500);
+}
+</script>
+</body>
+</html>
