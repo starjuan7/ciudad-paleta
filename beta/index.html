@@ -758,6 +758,7 @@ hr.dashed{border:none;border-top:2px dashed var(--gray-200);margin:12px 0;}
 
 <script>
 const ADMIN_UID = 'rutKf8KeZsYmHkVuVPPkLfTGjvy1';
+const ADMINS_FIJOS = {'rutKf8KeZsYmHkVuVPPkLfTGjvy1':'Juan','2vB10bWOJvRuKueEU83q6XQRjnC3':'Judith'};
 
 // ================================================================
 // ▼▼▼  PASO 1: PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE  ▼▼▼
@@ -967,7 +968,7 @@ function initFirebase(){
           const snap = await db.ref('usuarios/'+user.uid).once('value');
           let ud = snap.val();
           if(!ud){
-            if(user.uid===ADMIN_UID){ ud={nombre:'Juan',rol:'admin',email:user.email,plazaDefault:'puebla'}; await db.ref('usuarios/'+user.uid).set(ud); }
+            if(ADMINS_FIJOS[user.uid]){ ud={nombre:ADMINS_FIJOS[user.uid],rol:'admin',email:user.email,plazaDefault:'puebla'}; await db.ref('usuarios/'+user.uid).set(ud); }
             else { auth.signOut(); return; }
           }
           usuarioActual = Object.assign({uid:user.uid,email:user.email},ud);

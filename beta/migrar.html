@@ -89,6 +89,7 @@ const FIREBASE_CONFIG = {
   appId: "1:1064653839055:web:9f919d806dcad234bdf5ba"
 };
 const ADMIN_UID = 'rutKf8KeZsYmHkVuVPPkLfTGjvy1';
+const ADMINS_FIJOS = {'rutKf8KeZsYmHkVuVPPkLfTGjvy1':'Juan','2vB10bWOJvRuKueEU83q6XQRjnC3':'Judith'};
 const NODOS_ORIGEN = ['sabores','pedidos','clientes','historial','bitacora','inv_puebla','inv_acapulco'];
 const COLS = ['sabores','inventario','pedidos','historial','clientes','bitacora'];
 const PLAZAS = ['puebla','acapulco'];
@@ -104,8 +105,8 @@ auth.onAuthStateChanged(async user => {
   try{
     const snap = await db.ref('usuarios/'+user.uid).once('value');
     const u = snap.val();
-    esAdmin = (user.uid === ADMIN_UID) || (u && u.rol === 'admin' && u.activo !== false);
-  }catch(e){ esAdmin = (user.uid === ADMIN_UID); }
+    esAdmin = !!ADMINS_FIJOS[user.uid] || (u && u.rol === 'admin' && u.activo !== false);
+  }catch(e){ esAdmin = !!ADMINS_FIJOS[user.uid]; }
   if(!esAdmin){ $('login-estado').innerHTML = '<span class="mal">Esta cuenta no es administradora.</span>'; habilitar(false); return; }
   $('login-estado').innerHTML = '<span class="ok">Sesión: '+user.email+'</span>'; $('login-form').style.display = 'none';
   habilitar(true);

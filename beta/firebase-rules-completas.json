@@ -1,0 +1,115 @@
+{
+  "rules": {
+    "sabores": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'"
+    },
+    "inv_puebla": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "inv_acapulco": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "pedidos": {
+      ".read": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null",
+      "$pedidoId": {
+        ".read": "auth != null && data.child('clienteUid').val() === auth.uid"
+      }
+    },
+    "clientes": {
+      ".read": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'"
+    },
+    "premios": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'"
+    },
+    "usuarios": {
+      ".read": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('usuarios').child(auth.uid).child('rol').val() === 'admin')"
+      }
+    },
+    "historial": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "bitacora": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "clientes_pedidos": {
+      ".read": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('usuarios').child(auth.uid).child('rol').val() === 'admin')"
+      }
+    },
+    "canjes": {
+      ".read": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'",
+      ".write": "auth != null"
+    },
+    "config": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('usuarios').child(auth.uid).child('rol').val() === 'admin'"
+    },
+    "ingredientes_receta": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "recetas": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "materia_prima_inv": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "producciones": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "bitacora_recetas": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "plazas": {
+      "$plaza": {
+        ".validate": "$plaza === 'puebla' || $plaza === 'acapulco'",
+        ".read": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))",
+        "config": {
+          ".write": "auth != null && ((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false))"
+        },
+        "sabores": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))"
+        },
+        "inventario": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))"
+        },
+        "pedidos": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))"
+        },
+        "clientes": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))"
+        },
+        "historial": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))",
+          ".indexOn": [
+            "ts"
+          ]
+        },
+        "bitacora": {
+          ".write": "auth != null && (((auth.uid === 'rutKf8KeZsYmHkVuVPPkLfTGjvy1' || auth.uid === '2vB10bWOJvRuKueEU83q6XQRjnC3') || (root.child('usuarios').child(auth.uid).child('rol').val() === 'admin' && root.child('usuarios').child(auth.uid).child('activo').val() !== false)) || (root.child('usuarios').child(auth.uid).child('activo').val() !== false && root.child('usuarios').child(auth.uid).child('rol').val() === 'empleado' && (!root.child('usuarios').child(auth.uid).child('plazaRestricta').exists() || root.child('usuarios').child(auth.uid).child('plazaRestricta').val() === $plaza)))",
+          ".indexOn": [
+            "ts"
+          ]
+        }
+      }
+    }
+  }
+}
