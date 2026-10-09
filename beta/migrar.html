@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migración a plazas independientes · Ciudad Paleta</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fdf2f8;color:#1f2937;margin:0;padding:16px}
+.wrap{max-width:820px;margin:0 auto}
+h1{font-size:1.3rem;margin:0 0 4px;color:#9d174d}
+.card{background:#fff;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.card h2{font-size:1rem;margin:0 0 8px}
+.btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;background:#db2777;color:#fff;font-size:.9rem}
+.btn:disabled{background:#d1d5db;cursor:not-allowed}
+.btn.sec{background:#0f766e}.btn.gris{background:#6b7280}.btn.rojo{background:#b91c1c}
+input[type=text],input[type=email],input[type=password]{padding:9px;border:1.5px solid #e5e7eb;border-radius:8px;width:100%;margin:4px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#fce7f3;color:#831843}
+.ok{color:#047857;font-weight:700}.mal{color:#b91c1c;font-weight:700}.aviso{color:#92400e}
+pre{background:#111827;color:#e5e7eb;padding:10px;border-radius:8px;white-space:pre-wrap;max-height:220px;overflow:auto;font-size:.8rem}
+.nota{font-size:.85rem;color:#4b5563}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔁 Migración a plazas independientes</h1>
+  <p class="nota">Esta herramienta <b>solo COPIA</b> tus datos actuales a la nueva estructura <code>plazas/puebla</code> y <code>plazas/acapulco</code>. Nunca modifica ni borra los datos originales.</p>
+
+  <div class="card" id="c-login">
+    <h2>0 · Acceso (administrador)</h2>
+    <div id="login-estado" class="nota">Verificando sesión…</div>
+    <div id="login-form" style="display:none">
+      <input type="email" id="lg-email" placeholder="Correo de administrador">
+      <input type="password" id="lg-pass" placeholder="Contraseña">
+      <button class="btn" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <div class="card" id="c-analizar" style="opacity:.5;pointer-events:none">
+    <h2>1 · Analizar (no escribe nada)</h2>
+    <p class="nota">Lee tus datos actuales y muestra cuántos registros irían a cada plaza. Compara con lo que sabes que tienes.</p>
+    <button class="btn" onclick="analizar()">Analizar datos actuales</button>
+    <div id="reporte" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="c-respaldo" style="opacity:.5;pointer-events:none">
+    <h2>2 · Respaldo (obligatorio)</h2>
+    <p class="nota">Descarga una copia de los datos originales. Guárdala en un lugar seguro. Sin este paso no se habilita la migración.</p>
+    <button class="btn sec" onclick="descargarRespaldo()">⬇️ Descargar respaldo JSON</button>
+    <span id="resp-estado" class="nota"></span>
+  </div>
+
+  <div class="card" id="c-migrar" style="opacity:.5;pointer-events:none">
+    <h2>3 · Copiar a las plazas</h2>
+    <p class="nota">Hazlo fuera del horario de pedidos. Si ya existe una copia, se detiene (primero hay que eliminar la copia, nunca los originales).</p>
+    <button class="btn" id="btn-migrar" onclick="migrar()" disabled>Copiar datos a plazas/…</button>
+    <pre id="log" style="display:none"></pre>
+  </div>
+
+  <div class="card" id="c-verificar" style="opacity:.5;pointer-events:none">
+    <h2>4 · Verificar</h2>
+    <p class="nota">Vuelve a leer lo copiado y lo compara con el análisis (conteos y total vendido por plaza).</p>
+    <button class="btn sec" onclick="verificar()">Verificar copia</button>
+    <div id="verif" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card" id="c-borrar" style="opacity:.5;pointer-events:none">
+    <h2>Rehacer la copia (opcional)</h2>
+    <p class="nota">Si hiciste pruebas y quieres copiar de nuevo con datos frescos, esto elimina <b>solo la copia</b> (<code>plazas/puebla</code> y <code>plazas/acapulco</code>). Los datos originales no se tocan.</p>
+    <input type="text" id="txt-borrar" placeholder='Escribe BORRAR COPIA para habilitar'>
+    <button class="btn rojo" onclick="borrarCopia()">Eliminar la copia</button>
+  </div>
+</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBhVXmBy1G_Ce76Q02Jg9AVPnUuRIlb-94",
+  authDomain: "ciudad-paleta.firebaseapp.com",
+  databaseURL: "https://ciudad-paleta-default-rtdb.firebaseio.com",
+  projectId: "ciudad-paleta",
+  storageBucket: "ciudad-paleta.firebasestorage.app",
+  messagingSenderId: "1064653839055",
+  appId: "1:1064653839055:web:9f919d806dcad234bdf5ba"
+};
+const ADMIN_UID = 'rutKf8KeZsYmHkVuVPPkLfTGjvy1';
+const NODOS_ORIGEN = ['sabores','pedidos','clientes','historial','bitacora','inv_puebla','inv_acapulco'];
+const COLS = ['sabores','inventario','pedidos','historial','clientes','bitacora'];
+const PLAZAS = ['puebla','acapulco'];
+const $ = id => document.getElementById(id);
+
+let db, auth, origen = null, plan = null, respaldado = false, esAdmin = false;
+
+firebase.initializeApp(FIREBASE_CONFIG);
+db = firebase.database(); auth = firebase.auth();
+
+auth.onAuthStateChanged(async user => {
+  if(!user){ $('login-estado').textContent = 'Inicia sesión con tu cuenta de administrador.'; $('login-form').style.display = 'block'; habilitar(false); return; }
+  try{
+    const snap = await db.ref('usuarios/'+user.uid).once('value');
+    const u = snap.val();
+    esAdmin = (user.uid === ADMIN_UID) || (u && u.rol === 'admin' && u.activo !== false);
+  }catch(e){ esAdmin = (user.uid === ADMIN_UID); }
+  if(!esAdmin){ $('login-estado').innerHTML = '<span class="mal">Esta cuenta no es administradora.</span>'; habilitar(false); return; }
+  $('login-estado').innerHTML = '<span class="ok">Sesión: '+user.email+'</span>'; $('login-form').style.display = 'none';
+  habilitar(true);
+});
+async function entrar(){
+  try{ await auth.signInWithEmailAndPassword($('lg-email').value.trim(), $('lg-pass').value); }
+  catch(e){ $('login-estado').innerHTML = '<span class="mal">No se pudo entrar: '+(e.code||e.message)+'</span>'; }
+}
+function habilitar(on){
+  ['c-analizar','c-borrar'].forEach(id => { $(id).style.opacity = on ? 1 : .5; $(id).style.pointerEvents = on ? 'auto' : 'none'; });
+}
+function activar(id){ $(id).style.opacity = 1; $(id).style.pointerEvents = 'auto'; }
+
+// ------------------------------------------------------------------ lectura
+async function leerMapa(path){
+  const snap = await db.ref(path).once('value'); const m = {};
+  snap.forEach(ch => { m[ch.key] = ch.val(); });
+  return m;
+}
+function sinInternos(o){ const r = {}; Object.keys(o||{}).forEach(k => { if(k[0] !== '_' && o[k] !== undefined && o[k] !== null) r[k] = o[k]; }); return r; }
+function norm(t){ return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim(); }
+function num(v){ const n = parseFloat(v); return isNaN(n) ? undefined : n; }
+
+// ------------------------------------------------------------------ plan (función pura)
+function construirPlan(o){
+  const avisos = [];
+  const pl = { puebla:{}, acapulco:{} };
+  PLAZAS.forEach(p => COLS.forEach(c => { pl[p][c] = {}; }));
+
+  // sabores: cada plaza recibe el catálogo completo con SUS precios (p1..p3 / a1,a2)
+  Object.keys(o.sabores).forEach(k => {
+    const s = o.sabores[k]; if(!s || typeof s !== 'object') return;
+    const id = s.id != null ? s.id : (isNaN(Number(k)) ? k : Number(k));
+    const comun = { id, nombre: s.nombre, tag: s.tag || '' };
+    if(s.imagen) comun.imagen = s.imagen;
+    const sp = Object.assign({}, comun), sa = Object.assign({}, comun);
+    ['p1','p2','p3'].forEach(q => { const v = num(s[q]); if(v !== undefined) sp[q] = v; });
+    const a1 = num(s.a1) !== undefined ? num(s.a1) : num(s.p1);
+    const a2 = num(s.a2) !== undefined ? num(s.a2) : num(s.p3);
+    if(a1 !== undefined) sa.a1 = a1; if(a2 !== undefined) sa.a2 = a2;
+    if(num(s.p1) === undefined) avisos.push('Sabor "'+s.nombre+'" sin precio p1');
+    pl.puebla.sabores[String(id)] = sp; pl.acapulco.sabores[String(id)] = sa;
+  });
+
+  // inventarios: ya estaban separados
+  Object.keys(o.inv_puebla).forEach(k => { pl.puebla.inventario[k] = o.inv_puebla[k]; });
+  Object.keys(o.inv_acapulco).forEach(k => { pl.acapulco.inventario[k] = o.inv_acapulco[k]; });
+
+  // pedidos: por su campo plaza (sin plaza → Puebla, con aviso)
+  const idsPorPlaza = { puebla:new Set(), acapulco:new Set() }, nombresPorPlaza = { puebla:new Set(), acapulco:new Set() };
+  const plazaDePedido6 = {};   // últimos 6 dígitos del folio → plaza (null si ambiguo)
+  let sinPlaza = 0;
+  Object.keys(o.pedidos).forEach(k => {
+    const p = o.pedidos[k]; if(!p || typeof p !== 'object') return;
+    let pz = p.plaza === 'acapulco' ? 'acapulco' : 'puebla';
+    if(p.plaza !== 'acapulco' && p.plaza !== 'puebla') sinPlaza++;
+    const copia = sinInternos(p); copia.plaza = pz;
+    pl[pz].pedidos[k] = copia;
+    if(p.clienteId) idsPorPlaza[pz].add(String(p.clienteId));
+    if(p.cliente) nombresPorPlaza[pz].add(norm(p.cliente));
+    const f6 = String(p.id != null ? p.id : k).slice(-6);
+    plazaDePedido6[f6] = (f6 in plazaDePedido6 && plazaDePedido6[f6] !== pz) ? null : pz;
+  });
+  if(sinPlaza) avisos.push(sinPlaza+' pedido(s) sin plaza asignada: se copiaron a Puebla');
+
+  // clientes: a la plaza donde tienen pedidos; en ambas si tienen en las dos; sin pedidos → ambas
+  const cli = { soloPuebla:0, soloAcapulco:0, ambasConPedidos:0, sinPedidos:0 };
+  Object.keys(o.clientes).forEach(k => {
+    const c = o.clientes[k]; if(!c || typeof c !== 'object') return;
+    const en = PLAZAS.filter(pz => idsPorPlaza[pz].has(String(c.id != null ? c.id : k)) || nombresPorPlaza[pz].has(norm(c.nombre)));
+    const destino = en.length ? en : PLAZAS;
+    if(!en.length) cli.sinPedidos++; else if(en.length === 2) cli.ambasConPedidos++; else if(en[0] === 'puebla') cli.soloPuebla++; else cli.soloAcapulco++;
+    destino.forEach(pz => { pl[pz].clientes[k] = sinInternos(c); });
+  });
+
+  // historial y bitácora: por campo plaza; los de pedidos por folio; el resto a ambas
+  const reparto = (col, etiqueta) => {
+    const r = { puebla:0, acapulco:0, ambas:0 };
+    Object.keys(o[col]).forEach(k => {
+      const h = o[col][k]; if(!h || typeof h !== 'object') return;
+      let dest = null;
+      if(h.plaza === 'puebla' || h.plaza === 'acapulco') dest = h.plaza;
+      else if(col === 'historial' && (h.tipo === 'pedido' || h.tipo === 'devolucion')){
+        const m = /#(\d{6})/.exec(h.motivo || ''); if(m && plazaDePedido6[m[1]]) dest = plazaDePedido6[m[1]];
+      } else if(col === 'bitacora'){
+        const m = /#(\d{6})/.exec((h.detalle || '')); if(m && plazaDePedido6[m[1]]) dest = plazaDePedido6[m[1]];
+      }
+      const limpio = sinInternos(h);
+      if(dest){ pl[dest][col][k] = limpio; r[dest]++; }
+      else { PLAZAS.forEach(pz => { pl[pz][col][k] = limpio; }); r.ambas++; }
+    });
+    if(r.ambas) avisos.push(r.ambas+' registro(s) de '+etiqueta+' no indican plaza: se copiaron a las dos plazas');
+    return r;
+  };
+  const rHist = reparto('historial','historial de inventario'), rBit = reparto('bitacora','bitácora');
+
+  const ahora = new Date().toISOString();
+  const cfg = {
+    puebla:   { esquemas:{ p1:{nombre:'Menudeo',min:30}, p2:{nombre:'Medio',min:100}, p3:{nombre:'Mayoreo',min:200} }, controlStock:true  },
+    acapulco: { esquemas:{ a1:{nombre:'Menudeo',min:50}, a2:{nombre:'Mayoreo',min:200} },                              controlStock:false }
+  };
+  PLAZAS.forEach(pz => { pl[pz].config = Object.assign({}, cfg[pz], { migrado:{ fecha:ahora, version:1 } }); });
+
+  const total = (pz, col) => Object.keys(pl[pz][col]).length;
+  const ventas = pz => Object.values(pl[pz].pedidos).filter(p => p.status === 'entregado').reduce((a,p) => a + (parseFloat(p.totalMonto)||0), 0);
+  return { pl, avisos, cli, rHist, rBit, total, ventas };
+}
+
+// ------------------------------------------------------------------ UI
+async function analizar(){
+  $('reporte').innerHTML = 'Leyendo datos actuales…';
+  try{
+    origen = {};
+    for(const n of NODOS_ORIGEN) origen[n] = await leerMapa(n);
+  }catch(e){ $('reporte').innerHTML = '<span class="mal">No se pudo leer: '+(e.code||e.message)+'</span>'; return; }
+  plan = construirPlan(origen);
+  const cnt = n => Object.keys(origen[n]).length;
+  const f = v => '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const filas = [
+    ['Sabores', cnt('sabores'), plan.total('puebla','sabores'), plan.total('acapulco','sabores')],
+    ['Pedidos', cnt('pedidos'), plan.total('puebla','pedidos'), plan.total('acapulco','pedidos')],
+    ['Clientes', cnt('clientes'), plan.total('puebla','clientes'), plan.total('acapulco','clientes')],
+    ['Inventario (sabores con registro)', cnt('inv_puebla')+' + '+cnt('inv_acapulco'), plan.total('puebla','inventario'), plan.total('acapulco','inventario')],
+    ['Movimientos de inventario', cnt('historial'), plan.total('puebla','historial'), plan.total('acapulco','historial')],
+    ['Bitácora', cnt('bitacora'), plan.total('puebla','bitacora'), plan.total('acapulco','bitacora')],
+  ];
+  $('reporte').innerHTML = '<table><tr><th>Dato</th><th>Hoy (todo junto)</th><th>→ Puebla</th><th>→ Acapulco</th></tr>'
+    + filas.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>').join('')
+    + '<tr><td>Total vendido (entregados)</td><td>'+f(plan.ventas('puebla')+plan.ventas('acapulco'))+'</td><td>'+f(plan.ventas('puebla'))+'</td><td>'+f(plan.ventas('acapulco'))+'</td></tr></table>'
+    + '<p class="nota">Clientes: '+plan.cli.soloPuebla+' solo Puebla · '+plan.cli.soloAcapulco+' solo Acapulco · '+plan.cli.ambasConPedidos+' con pedidos en las dos · '+plan.cli.sinPedidos+' sin pedidos (copiados a ambas).</p>'
+    + (plan.avisos.length ? '<p class="aviso">⚠️ '+plan.avisos.join('<br>⚠️ ')+'</p>' : '')
+    + '<p class="nota">Nota: los pedidos y clientes del <i>total</i> pueden aparecer en las dos columnas cuando un cliente existe en ambas plazas.</p>';
+  activar('c-respaldo');
+}
+
+function descargarRespaldo(){
+  if(!origen){ return; }
+  const blob = new Blob([JSON.stringify({ generado:new Date().toISOString(), proyecto:'ciudad-paleta', datos:origen }, null, 1)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'respaldo-ciudad-paleta-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  respaldado = true; $('resp-estado').innerHTML = ' <span class="ok">✔ Respaldo descargado. Guárdalo.</span>';
+  activar('c-migrar'); $('btn-migrar').disabled = false;
+}
+
+function log(t){ const el = $('log'); el.style.display = 'block'; el.textContent += t+'\n'; el.scrollTop = el.scrollHeight; }
+
+async function yaExisteCopia(){
+  for(const pz of PLAZAS){
+    const m = await db.ref('plazas/'+pz+'/config/migrado').once('value'); if(m.exists()) return true;
+    for(const c of ['pedidos','sabores','clientes']){
+      const s = await db.ref('plazas/'+pz+'/'+c).limitToFirst(1).once('value'); if(s.exists()) return true;
+    }
+  }
+  return false;
+}
+
+async function migrar(){
+  if(!plan || !respaldado){ alert('Primero analiza y descarga el respaldo.'); return; }
+  if(!confirm('Se COPIARÁN los datos a plazas/puebla y plazas/acapulco. Los originales no se tocan. ¿Continuar?')) return;
+  $('btn-migrar').disabled = true; $('log').textContent = '';
+  try{
+    if(await yaExisteCopia()){ log('⛔ Ya existe una copia en plazas/. No se escribió nada. Para rehacerla, primero usa "Eliminar la copia" (abajo).'); activar('c-borrar'); return; }
+    for(const pz of PLAZAS){
+      for(const c of COLS){
+        const datos = plan.pl[pz][c]; const n = Object.keys(datos).length;
+        if(!n){ log('· '+pz+'/'+c+': vacío, nada que copiar'); continue; }
+        await db.ref('plazas/'+pz+'/'+c).set(datos);
+        log('✔ '+pz+'/'+c+': '+n+' registros');
+      }
+    }
+    // la marca de "migrado" va al final: si algo falla antes, no queda marcada como completa
+    for(const pz of PLAZAS){ await db.ref('plazas/'+pz+'/config').set(plan.pl[pz].config); log('✔ '+pz+'/config (esquemas y marca)'); }
+    log('\nListo. Ahora pulsa "Verificar copia".');
+    activar('c-verificar'); activar('c-borrar');
+  }catch(e){
+    log('\n❌ Error: '+(e.code||e.message)+'\nLo copiado hasta aquí no afecta tus datos originales. Revisa las reglas de seguridad (plazas) y vuelve a intentar; si quedó copia parcial, usa "Eliminar la copia".');
+    activar('c-borrar');
+  }
+}
+
+async function verificar(){
+  $('verif').innerHTML = 'Verificando…';
+  const filas = []; let todoOk = true;
+  const f = v => '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+  try{
+    for(const pz of PLAZAS){
+      for(const c of COLS){
+        const m = await leerMapa('plazas/'+pz+'/'+c);
+        const esperado = Object.keys(plan.pl[pz][c]).length, real = Object.keys(m).length;
+        const ok = esperado === real; if(!ok) todoOk = false;
+        filas.push([pz+' · '+c, esperado, real, ok]);
+        if(c === 'pedidos'){
+          const venta = Object.values(m).filter(p => p.status === 'entregado').reduce((a,p) => a + (parseFloat(p.totalMonto)||0), 0);
+          const okv = Math.abs(venta - plan.ventas(pz)) < 0.005; if(!okv) todoOk = false;
+          filas.push([pz+' · total vendido', f(plan.ventas(pz)), f(venta), okv]);
+        }
+      }
+      const cfg = await db.ref('plazas/'+pz+'/config/migrado').once('value');
+      filas.push([pz+' · marca de migración', 'sí', cfg.exists() ? 'sí' : 'no', cfg.exists()]); if(!cfg.exists()) todoOk = false;
+    }
+  }catch(e){ $('verif').innerHTML = '<span class="mal">Error al verificar: '+(e.code||e.message)+'</span>'; return; }
+  $('verif').innerHTML = '<table><tr><th>Concepto</th><th>Esperado</th><th>En la copia</th><th></th></tr>'
+    + filas.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+(r[3] ? '<span class="ok">✔</span>' : '<span class="mal">✘</span>')+'</td></tr>').join('') + '</table>'
+    + '<p class="'+(todoOk ? 'ok' : 'mal')+'">'+(todoOk ? '✔ La copia coincide con los datos originales.' : '✘ Hay diferencias: no cambies de sistema todavía y avísame.')+'</p>';
+}
+
+async function borrarCopia(){
+  if($('txt-borrar').value.trim() !== 'BORRAR COPIA'){ alert('Escribe exactamente: BORRAR COPIA'); return; }
+  if(!respaldado){ alert('Primero usa el paso 1 (Analizar) y el paso 2 (descargar respaldo).'); return; }
+  if(!confirm('Se eliminará SOLO la copia en plazas/puebla y plazas/acapulco. Los datos originales no se tocan. ¿Seguro?')) return;
+  try{
+    for(const pz of PLAZAS) await db.ref('plazas/'+pz).remove();
+    alert('Copia eliminada. Tus datos originales siguen intactos. Puedes volver a copiar.');
+    $('log').textContent = ''; $('btn-migrar').disabled = !respaldado;
+  }catch(e){ alert('No se pudo eliminar: '+(e.code||e.message)); }
+}
+</script>
+</body>
+</html>
